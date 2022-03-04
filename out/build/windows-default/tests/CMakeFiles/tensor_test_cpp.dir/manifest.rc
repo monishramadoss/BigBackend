@@ -1,0 +1,2 @@
+#pragma code_page(65001)
+1 /* CREATEPROCESS_MANIFEST_RESOURCE_ID */ 24 /* RT_MANIFEST */ "C:/Users/monish/source/repos/bigbackend/out/build/windows-default/tests/CMakeFiles/tensor_test_cpp.dir/embed.manifest"
