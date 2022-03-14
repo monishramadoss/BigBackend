@@ -9,7 +9,7 @@
 
 class base_storage;
 
-tensor::tensor(byte_* data, std::vector<_int>& shape, Format fmt) : dtype(fmt), size_in_bytes(element_size(fmt))
+tensor::tensor(byte_* data, std::vector<_int>& shape, Format fmt) : dtype(fmt), local_tensor_id(global_tensor_id++), size_in_bytes(element_size(fmt))
 {
 	view = views(element_size(fmt), shape);
 	size_in_bytes *= view.size(0);
@@ -18,7 +18,7 @@ tensor::tensor(byte_* data, std::vector<_int>& shape, Format fmt) : dtype(fmt), 
 	shard_state.clear();
 }
 
-tensor::tensor(byte_* data, const std::vector<_int>& shape, Format fmt) : dtype(fmt), size_in_bytes(element_size(fmt))
+tensor::tensor(byte_* data, const std::vector<_int>& shape, Format fmt) : dtype(fmt), local_tensor_id(global_tensor_id++), size_in_bytes(element_size(fmt))
 {
 	view = views(element_size(fmt), shape);
 	size_in_bytes *= view.size(0);
@@ -27,17 +27,17 @@ tensor::tensor(byte_* data, const std::vector<_int>& shape, Format fmt) : dtype(
 	shard_state.clear();
 }
 
-tensor::tensor(views v, tensor& ptr, const Format fmt) : dtype(fmt), view(std::move(v)), size_in_bytes(element_size(fmt))
+tensor::tensor(views v, tensor& ptr, const Format fmt) : dtype(fmt), view(std::move(v)), local_tensor_id(global_tensor_id++), size_in_bytes(element_size(fmt))
 {
 	parent = std::make_shared<tensor>(ptr);
 	size_in_bytes *= view.size(0);
 }
 
-tensor::tensor(tensor&& t) noexcept : dtype(t.dtype), parent(std::move(t.parent)),
-                                      data_(std::move(t.data_)), view(std::move(t.view)), size_in_bytes(t.size_in_bytes) {}
+tensor::tensor(tensor&& t) noexcept : dtype(t.dtype), parent(std::move(t.parent)), data_(std::move(t.data_)),
+                                      view(std::move(t.view)), local_tensor_id(t.local_tensor_id), size_in_bytes(t.size_in_bytes) {}
 
-tensor::tensor(const tensor& t) : dtype(t.dtype), parent(t.parent),
-                                  data_(t.data_), view(t.view), size_in_bytes(t.size_in_bytes) {}
+tensor::tensor(const tensor& t) : dtype(t.dtype), parent(t.parent), data_(t.data_),
+                                  view(t.view), local_tensor_id(t.local_tensor_id), size_in_bytes(t.size_in_bytes) {}
 
 
 std::pair<_int, _int> tensor::get_offset() const
@@ -73,8 +73,8 @@ byte_* tensor::get_data()
 	{
 		if(src == nullptr)
 		{
-			for (const auto& off : p->view.offset)
-				offset += off.first;
+			for (const auto& [fst, snd] : p->view.offset)
+				offset += fst;
 			if(p->data_ != nullptr)
 			{
 				src = p->data_->get_data();
@@ -101,8 +101,6 @@ byte_* tensor::get_storage_data() const
 	else
 		return data_->get_data();
 }
-
-
 
 void tensor::set_data(const byte_* src, _int offset) const
 {

@@ -36,32 +36,28 @@ _int getTotalDiskSpace()
 
 _int used_memory{0};
 
-device::device() : device_id(devices.size()), global_rank(0), local_rank(0), max_memory_size(getTotalSystemMemory()),
+device::device() : num_threads(std::thread::hardware_concurrency()), device_id(devices.size()), global_rank(0), local_rank(0), max_memory_size(getTotalSystemMemory()),
                    used_memory(0)
 {
-	const _int numThreads = std::thread::hardware_concurrency();
-	pool.setThreadCount(numThreads);
+	pool.setThreadCount(num_threads);
 }
 
-device::device(device& d) : device_id(d.device_id), global_rank(d.global_rank), local_rank(d.local_rank),
+device::device(device& d) : num_threads(std::thread::hardware_concurrency()), device_id(d.device_id), global_rank(d.global_rank), local_rank(d.local_rank),
                             max_memory_size(d.max_memory_size), used_memory(d.used_memory)
 {
-	const _int numThreads = std::thread::hardware_concurrency();
-	pool.setThreadCount(numThreads);
+	pool.setThreadCount(num_threads);
 }
 
-device::device(const device& d) : device_id(d.device_id), global_rank(d.global_rank), local_rank(d.local_rank),
+device::device(const device& d) : num_threads(std::thread::hardware_concurrency()), device_id(d.device_id), global_rank(d.global_rank), local_rank(d.local_rank),
                                   max_memory_size(d.max_memory_size), used_memory(d.used_memory)
 {
-	const _int numThreads = std::thread::hardware_concurrency();
-	pool.setThreadCount(numThreads);
+	pool.setThreadCount(num_threads);
 }
 
-device::device(device&& d) noexcept : device_id(d.device_id), global_rank(d.global_rank), local_rank(d.local_rank),
+device::device(device&& d) noexcept : num_threads(std::thread::hardware_concurrency()), device_id(d.device_id), global_rank(d.global_rank), local_rank(d.local_rank),
                                       max_memory_size(d.max_memory_size), used_memory(d.used_memory)
 {
-	const _int numThreads = std::thread::hardware_concurrency();
-	pool.setThreadCount(numThreads);
+	pool.setThreadCount(num_threads);
 }
 
 
@@ -108,13 +104,18 @@ bool device::is_avalible(int d_type)
 	return true;
 }
 
+void device::addJob(std::function<void()> job)
+{
+	
+}
+
 device::~device()
 {
-	for (const auto& [fst, snd] : memory_sector)
-	{
-		if(fst != nullptr)
-			free(fst);
-	}
+	//for (const auto& [fst, snd] : memory_sector)
+	//{
+	//	if (fst != nullptr);
+	//		//free(fst);
+	//}
 };
 
 ThreadPool device::pool = ThreadPool();
@@ -127,18 +128,17 @@ std::vector<std::vector<float>> device::compute_latency = {};
 device& get_avalible_device(int device_type)
 {
 	if (device::devices.empty())
-	{
 		device::devices.emplace_back();
-	}
 
-	device::transfer_latency = std::vector<std::vector<float>>(device::devices.size(), std::vector<float>(device::devices.size(), 0));
-	device::compute_latency = std::vector<std::vector<float>>(device::devices.size(), std::vector<float>(device::devices.size(), 0));
 
 	for (auto& dev : device::devices)
 	{
 		if (dev.is_avalible(device_type))
 			return dev;
 	}			
+	device::transfer_latency = std::vector<std::vector<float>>(device::devices.size(), std::vector<float>(device::devices.size(), 0));
+	device::compute_latency = std::vector<std::vector<float>>(device::devices.size(), std::vector<float>(device::devices.size(), 0));
 
+	
 	return device::devices[0];
 }

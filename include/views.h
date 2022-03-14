@@ -23,6 +23,7 @@ public:
 	views& reshape(const std::vector<int>&);
 	[[nodiscard]] _int size_in_bytes() const { return t_size * d_size; }
 	[[nodiscard]] _int size(_int idx = 0) const { return size_[idx]; }
+	[[nodiscard]] _int shape(size_t idx) const { return shape_[idx]; }
 	dim_vec& shape() { return shape_; }
 
 	offset offset;

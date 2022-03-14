@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <functional>
 #include "types.h"
 #include "thread_pool.h"
 
@@ -23,13 +24,14 @@ public:
 	virtual void free_memory(byte_*);
 	virtual byte_* allocate_memory(_int size, _int& offset);
 	virtual bool is_avalible(int d_type = -1);
+	void addJob(std::function<void()> job);
 
 	static std::vector<device> devices;
 	static std::vector<std::vector<float>> transfer_latency;
 	static std::vector<std::vector<float>> compute_latency;
 	~device();
 	int device_type = -1;
-	
+	size_t num_threads;
 
 protected:
 
