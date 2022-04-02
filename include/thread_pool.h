@@ -33,8 +33,8 @@ public:
 	_int num_threads{};
 	std::vector<std::thread::id> thread_ids;
 	std::map<std::thread::id, std::unique_ptr<Thread>> threads;
-	std::thread::id add_job(const std::function<void()>&) ;
+	std::thread::id add_job(const std::function<void()>&);
 	void setThreadCount(_int count);
-	void wait() ;
+	void wait();
 	void wait(const std::thread::id);
 };

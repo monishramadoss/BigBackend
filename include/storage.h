@@ -1,49 +1,54 @@
 #pragma once
 #include <fstream>
-
 #include <string>
-#include <vector>
 
 #include "device.h"
+#include "device_memory.h"
 #include "types.h"
+
 
 static _int io_{0};
 
-class base_storage
+class base_storage final
 {
 public:
-	base_storage(_int);
-	base_storage(const byte_*, _int);
-	base_storage(const base_storage&);
+	base_storage(_int size);
+	base_storage(const byte_* src, _int size);
+	base_storage(const base_storage& bs);
 
 	[[nodiscard]] byte_* get_data() const
 	{
-		return data.get();
+		return data->ptr + data->offset;
 	}
-	void set_data(const byte_*, _int, _int, _int) const;
+	void set_data(const byte_* src, _int dst_offset, _int src_offset, _int size);
 	void offload();
 	void onload();
 	~base_storage();
 protected:
-	std::unique_ptr<byte_> data;
+	block* data;
 	_int byte_size;
-	_int device_offset;
-	device& dev = get_avalible_device();
+
+	device dev = get_avalible_device();
 	std::string file_name;
 	std::fstream  afile;
 };
 
-
-class batch_storage: public base_storage
+#ifdef VULKAN
+#include <vulkan/vulkan.h>
+class vk_device_storage final
 {
 public:
-	batch_storage(byte_*, _int, _int);
-	batch_storage(_int, _int);
-	[[nodiscard]] byte_* get_data(_int idx) const { return b_data[idx].get_data(); }
-	void set_data(const byte_*, _int, _int, _int, _int) const;
-	static void set_data(base_storage&, _int);
-
+	vk_device_storage(_int size);
+	vk_device_storage(const byte_* src, _int size);
+	vk_device_storage(const vk_device_storage& vkbs);
+	[[nodiscard]] VkBuffer get_buffer() const;
+	~vk_device_storage();
 protected:
-	std::vector<base_storage> b_data;
-	_int batch_size;
+	vk_block* vk_data;
+	_int byte_size;
+
+	vk_device dev = std::move(get_vk_device());
+	VkBuffer device_buffer{};
+	VkBuffer host_buffer{};
 };
+#endif

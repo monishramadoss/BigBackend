@@ -9,35 +9,80 @@
 
 class base_storage;
 
-tensor::tensor(byte_* data, std::vector<_int>& shape, Format fmt) : dtype(fmt), local_tensor_id(global_tensor_id++), size_in_bytes(element_size(fmt))
+tensor::tensor() = default;
+
+tensor::tensor(byte_* data, std::vector<_int>& shape, Format fmt) : local_tensor_id(++global_tensor_id), dtype(fmt), view(element_size(fmt), shape), size_in_bytes(view.size_in_bytes())
 {
-	view = views(element_size(fmt), shape);
-	size_in_bytes *= view.size(0);
-	data_ = std::make_shared<base_storage>(data, size_in_bytes);
+	mdata = std::make_shared<base_storage>(data, size_in_bytes);
 	delete[] data;
 	shard_state.clear();
 }
 
-tensor::tensor(byte_* data, const std::vector<_int>& shape, Format fmt) : dtype(fmt), local_tensor_id(global_tensor_id++), size_in_bytes(element_size(fmt))
+tensor::tensor(byte_* data, const std::vector<_int>& shape, Format fmt) : local_tensor_id(++global_tensor_id), dtype(fmt), view(element_size(fmt), shape), size_in_bytes(view.size_in_bytes())
 {
-	view = views(element_size(fmt), shape);
-	size_in_bytes *= view.size(0);
-	data_ = std::make_shared<base_storage>(data, size_in_bytes);
+	mdata = std::make_shared<base_storage>(data, size_in_bytes);
 	delete[] data;
 	shard_state.clear();
 }
 
-tensor::tensor(views v, tensor& ptr, const Format fmt) : dtype(fmt), view(std::move(v)), local_tensor_id(global_tensor_id++), size_in_bytes(element_size(fmt))
+tensor::tensor(views v, tensor* ptr, const Format fmt) : local_tensor_id(++global_tensor_id), dtype(fmt), view(std::move(v)), size_in_bytes(view.size_in_bytes())
 {
-	parent = std::make_shared<tensor>(ptr);
-	size_in_bytes *= view.size(0);
+	if (this != ptr && parent == nullptr)
+	{
+		parent.reset(ptr);
+		ptr->children.push_back(*this);
+	}
 }
 
-tensor::tensor(tensor&& t) noexcept : dtype(t.dtype), parent(std::move(t.parent)), data_(std::move(t.data_)),
-                                      view(std::move(t.view)), local_tensor_id(t.local_tensor_id), size_in_bytes(t.size_in_bytes) {}
+tensor::tensor(tensor&& t) = default;
 
-tensor::tensor(const tensor& t) : dtype(t.dtype), parent(t.parent), data_(t.data_),
-                                  view(t.view), local_tensor_id(t.local_tensor_id), size_in_bytes(t.size_in_bytes) {}
+tensor::tensor(const tensor& t) : local_tensor_id(t.local_tensor_id), dtype(t.dtype), children(t.children), mdata(t.mdata),
+                                 src_kernel(t.src_kernel), dst_kernel(t.dst_kernel), view(t.view), size_in_bytes(t.size_in_bytes)
+{
+	std::cout << "Copy Operator" << std::endl;
+	if(parent == nullptr)
+		parent = t.parent;
+}
+
+tensor& tensor::operator=(const tensor& t) 
+{
+	std::cout << "Assign Operator" << std::endl;
+	if (this == &t && local_tensor_id == t.local_tensor_id)
+		return *this;
+
+	parent = std::make_shared<tensor>(tensor(*t.parent));
+
+	local_tensor_id = t.local_tensor_id;
+	children = t.children;
+	view = t.view;
+	dtype = t.dtype;
+	size_in_bytes = t.size_in_bytes;
+	mdata = t.mdata;
+	src_kernel = t.src_kernel;
+	dst_kernel = t.dst_kernel;
+	
+	return *this;
+
+}
+
+tensor& tensor::operator=(tensor&& t)
+{
+	std::cout << "Assigned Move Operator" << std::endl;
+	if (this == &t)
+		return *this;
+
+	parent = std::make_shared<tensor>(tensor(*t.parent));
+
+	local_tensor_id = t.local_tensor_id;
+	children = std::move(t.children);
+	view = t.view;
+	dtype = t.dtype;
+	size_in_bytes = t.size_in_bytes;
+	mdata = std::move(t.mdata);	
+	src_kernel = t.src_kernel;
+	dst_kernel = t.dst_kernel;
+	return *this;
+}
 
 
 std::pair<_int, _int> tensor::get_offset() const
@@ -58,57 +103,103 @@ std::pair<_int, _int> tensor::get_offset() const
 	return o;
 }
 
+void tensor::clear_storage()
+{
+	mdata.reset();
+}
+
+_int tensor::shape(int idx) const
+{
+	if (idx == -1)
+		idx = static_cast<int>(view.ndim()) - 1;
+	return view.shape(idx);
+}
+
 byte_* tensor::get_data()
 {
 	_int offset = 0;
 	byte_* src = nullptr;
 
-	if (data_ != nullptr)
-		return data_->get_data();
+	if (mdata != nullptr)
+		return mdata->get_data();
 
 	for(const auto& [fst, snd]: view.offset)
 		offset += fst;
 
-	for(std::shared_ptr<tensor> p = parent; p != nullptr; p = p->parent)
+	for(auto& p = parent; p != nullptr; p = p->parent)
 	{
 		if(src == nullptr)
 		{
 			for (const auto& [fst, snd] : p->view.offset)
 				offset += fst;
-			if(p->data_ != nullptr)
+			if(p->mdata != nullptr)
 			{
-				src = p->data_->get_data();
+				src = p->mdata->get_data();
 				break;
 			}
 		}
 	}
 
-	if (data_ == nullptr)
+	if (mdata == nullptr)
 	{
-		data_ = std::make_shared<base_storage>(size_in_bytes);
-		data_->set_data(src, 0, offset, size_in_bytes);
+		mdata = std::make_shared<base_storage>(size_in_bytes);
+		mdata->set_data(src, 0, offset, size_in_bytes);
 	}
 
-	return data_->get_data();
+	return mdata->get_data();
+}
+
+
+void tensor::set_data(const byte_* src, _int offset) const
+{
+	if (mdata != nullptr)
+		mdata->set_data(src, 0, 0, size_in_bytes);
+
+	std::shared_ptr<tensor> p = nullptr;
+	for (p = parent; p != nullptr; p = p->parent);
+	if (p != nullptr)
+		p->set_data(src, view.offset[0].first);
+}
+
+void tensor::set_data(tensor& t) const
+{
+	if (mdata != nullptr)
+	{
+		for (const auto& i : view.offset)
+			mdata->set_data(t.get_data(), i.first, 0, size_in_bytes);
+	}
+	std::shared_ptr<tensor> p = nullptr;
+	for (p = parent; p != nullptr; p = p->parent);
+	if (p != nullptr)
+		p->set_data(t);
+	throw std::runtime_error("Set data of tensor Not finished");
+
+}
+
+tensor tensor::reshape(std::vector<int>& new_shape)
+{
+	const views new_view = view.reshape(new_shape);
+	return { new_view, this, dtype};
+}
+
+tensor tensor::reshape(const std::vector<int>& new_shape)
+{
+	const auto new_view = view.reshape(new_shape);
+	return { new_view, this, dtype };
+}
+
+tensor& tensor::operator[](const _int i)
+{
+	children.emplace_back(view.select(0, i), this, dtype);
+	return children.back();
 }
 
 byte_* tensor::get_storage_data() const
 {
-	if(data_==nullptr)
+	if(mdata==nullptr)
 	{
 		return parent->get_storage_data(); // src;
 	}
 	else
-		return data_->get_data();
-}
-
-void tensor::set_data(const byte_* src, _int offset) const
-{
-	if(data_ != nullptr)
-		data_->set_data(src, 0, 0, size_in_bytes);
-	
-	std::shared_ptr<tensor> p = nullptr;
-	for (p = parent; p != nullptr; p = p->parent);
-	if(p != nullptr)
-		p->set_data(src, view.offset[0].first);
+		return mdata->get_data();
 }

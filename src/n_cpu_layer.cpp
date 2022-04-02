@@ -1,117 +1,115 @@
 #include "n_cpu_layer.h"
 #include <chrono>
+#include <stdexcept>
 
 using namespace std::chrono_literals;
 
-namespace naive
+binary_op::binary_op() : compute_job() {}
+
+tensor& binary_op::operator()(tensor& x, tensor& w)
 {
-	matmul::matmul(float alpha, float beta) : compute_job(), alpha(alpha), beta(beta) {}
+	push_input(x);
+	push_input(w);
 
-	void matmul::kernel(tensor& x, tensor& w, tensor& y)
-	{
-		std::this_thread::sleep_for(10ms);
-	}
+	dim_vec x_shape = x.shape();
+	dim_vec w_shape = w.shape();
+	if (x_shape.empty() || w_shape.empty())
+		throw std::runtime_error("Inputs shape are invalid");
 
+	auto y_shape = broadcast_contribution(x_shape, w_shape, differ, similar);
+	tensor y (data_filln<float>(y_shape, 0.0), y_shape, x.dtype);
+	push_output(y);
 
-	tensor matmul::batch(tensor& x, tensor& w, tensor& y)
-	{
-		for(auto i = 0; i < x.shape(0); ++ i)
-		{
-			matmul sub_kernel(alpha, beta);
-			sub_kernel.setup({ x[i], w, y[i] });
-			parallel_kernels.push_back(sub_kernel);
-		}
-		return y;
-	}
-
-	tensor matmul::operator()(tensor& x, tensor& w)
-	{
-		std::vector<_int> output_shape;
-		if (x.ndim() > 3)
-		{
-			x.reshape({ static_cast<int>(x.shape(0)),  -1, static_cast<int>(x.shape(-1)) });
-			output_shape = { x.shape(0), x.shape(1), w.shape(1) };
-		}
-
-		if (x.ndim() == 3)
-			output_shape = { x.shape(0), x.shape(1), w.shape(1) };
-		else
-			output_shape = { x.shape(0), w.shape(1) };
-
-		tensor y(data_filln<float>(output_shape, 0), output_shape, x.dtype);
-		setup({ x, w, y });
-
-		if (x.ndim() == 3)
-			return batch(x, w, y);
-
-		
-		return io_lst.back();
-	}
-
-	tensor matmul::operator()(tensor& x, tensor& w, tensor& z)
-	{
-		tensor y = operator()(x, w);
-		return io_lst.back();
-	}
-
-
-	void matmul::run()
-	{
-		if(!parallel_kernels.empty())
-		{
-			for(size_t i = 0; i < parallel_kernels.size(); ++i)
-			{
-				parallel_kernels[i].run();
-			}
-			return;
-
-		}
-		else 
-		{
-
-			kernel(io_lst[0], io_lst[1], io_lst[2]);
-		}
-		
-	}
-
-	relu::relu(bool in_place) : compute_job(), in_place(in_place)
-	{
-		
-	}
-
-	tensor relu::operator()(tensor& x)
-	{
-		if (!in_place)
-		{
-			tensor y(data_filln<float>(x.shape(), 0), x.shape(), x.dtype);
-			setup({ x, y });
-		} else
-		{
-			setup({ x, x });
-		}
-
-		return io_lst.back();
-	}
-
-	void relu::kernel(tensor& x, tensor& y)
-	{
-		std::this_thread::sleep_for(1ms);
-	}
-
-	void relu::run()
-	{
-		if(!parallel_kernels.empty())
-		{
-			for(auto& pk: parallel_kernels)
-			{
-				pk.run();
-			}
-		} else
-		{
-			kernel(io_lst[0], io_lst[1]);
-		}
-
-	}
+	return m_outputs.back();
 }
 
+void binary_op::kernel(tensor& x, tensor& w, tensor& y)
+{
+	if (x.ndim() != w.ndim())
+		throw std::runtime_error("inoperable");
+	throw std::runtime_error("no kernel developed");
+}
+
+void binary_op::run()
+{
+	if (!parallel_kernels.empty())
+	{
+		for (auto& pk : parallel_kernels)
+		{
+			pk.run();
+		}
+	}
+	else
+	{
+		kernel(m_inputs[0], m_inputs[1], m_outputs[2]);
+	}
+
+}
+
+void add::kernel(tensor& x, tensor& w, tensor& y)
+{
+	auto* _x = reinterpret_cast<const float*>(x.get_data());
+	auto* _w = reinterpret_cast<const float*>(w.get_data());
+	auto* _y = reinterpret_cast<float*>(y.get_data());
+
+	for (_int i = 0; i < x.data_size(); ++i)
+		_y[i] = _x[i] + _w[i];
+	
+}
+
+void sub::kernel(tensor& x, tensor& w, tensor& y)
+{
+	auto* _x = reinterpret_cast<const float*>(x.get_data());
+	auto* _w = reinterpret_cast<const float*>(w.get_data());
+	auto* _y = reinterpret_cast<float*>(y.get_data());
+
+	for (_int i = 0; i < x.data_size(); ++i)
+		_y[i] = _x[i] - _w[i];
+}
+
+void mul::kernel(tensor& x, tensor& w, tensor& y)
+{
+	auto* _x = reinterpret_cast<const float*>(x.get_data());
+	auto* _w = reinterpret_cast<const float*>(w.get_data());
+	auto* _y = reinterpret_cast<float*>(y.get_data());
+
+	for (_int i = 0; i < x.data_size(); ++i)
+		_y[i] = _x[i] * _w[i];
+}
+
+void true_div::kernel(tensor& x, tensor& w, tensor& y)
+{
+	auto* _x = reinterpret_cast<const float*>(x.get_data());
+	auto* _w = reinterpret_cast<const float*>(w.get_data());
+	auto* _y = reinterpret_cast<float*>(y.get_data());
+
+	for (_int i = 0; i < x.data_size(); ++i)
+		_y[i] = _x[i] / _w[i];
+}
+
+
+
+tensor tensor::operator+(tensor& w)
+{
+	auto kernel = add();
+	return kernel(*this, w);
+}
+
+tensor tensor::operator-(tensor& w)
+{
+	auto kernel = sub();
+	return kernel(*this, w);
+}
+
+tensor tensor::operator*(tensor& w)
+{
+	auto kernel = mul();
+	return kernel(*this, w);
+}
+
+tensor tensor::operator/(tensor& w)
+{
+	auto kernel = true_div();
+	return kernel(*this, w);
+}
 

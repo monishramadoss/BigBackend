@@ -1,20 +1,22 @@
 #pragma once
 #include <vector>
+#include <numeric>
 #include <functional>
+#include <algorithm>
+
 #include "device.h"
 #include "tensor.h"
 // TODO construct compute flow graph
 // TODO construct data flow graph from compute flow
 // TODO update compute flow graph with updated data flow with sync and async pipelines
 
-static size_t global_task_id{ 0 };
-static std::vector<std::vector<size_t>>  compute_adj_list = {};
-static std::vector<std::vector<size_t>>  data_adj_list = {};
-static std::vector<std::function<void()>> execution_queue = {};
 
 class compute_job
 {
-	
+
+private:
+	void split_kernel();
+
 protected:
 	std::vector<compute_job> parallel_kernels;
 	device dev = get_avalible_device();
@@ -24,26 +26,29 @@ public:
 	compute_job();
 	compute_job(compute_job&);
 	compute_job(const compute_job&);
-	compute_job(compute_job&&) = default;
-
+	compute_job(compute_job&&) noexcept;
 
 	size_t local_task_id;
 
-	virtual ~compute_job() = default;
-	std::vector<tensor> io_lst;
+	std::vector<tensor> m_inputs;
+	std::vector<tensor> m_outputs;
 
-	void setup(const std::vector<tensor>& io){
-		io_lst = io;
-	}
+	dim_vec similar;
+	dim_vec differ;
+
+	void push_input(tensor& input);
+	void push_output(tensor& output);
+
 	virtual void run() { state = 2; }
+	virtual ~compute_job();
 };
 
 
 
 #ifdef VULKAN
 
-static std::vector<uint32_t> compileSource(
-	const std::string& source)
+
+static std::vector<uint32_t> compileSource(const std::string& source)
 {
 	if (system(std::string("glslangValidator --stdin -S comp -V -o tmp_kp_shader.comp.spv << END\n" + source + "\nEND").c_str()))
 		throw std::runtime_error("Error running glslangValidator command");

@@ -64,9 +64,76 @@ static void multi_idx(std::vector<std::string>& idx, const dim_vec& shape, const
 {
 	dim_vec unk_axis;
 	dim_vec kn_axis;
-
-	
 }
+
+inline bool check_same_shape(const dim_vec& s1, const dim_vec& s2)
+{
+	if (s1.size() != s2.size())
+		return false;
+	for(_int i = 0; i < s1.size(); ++i)
+	{
+		if (s1[i] != s2[i])
+			return false;
+	}
+	return true;
+}
+
+inline dim_vec broadcast_contribution(dim_vec& s1, dim_vec& s2, dim_vec& difference, dim_vec& intersection)
+{
+	const auto p = std::max<size_t>(s1.size(), s2.size());
+	for (auto i = s1.size(); i < p; ++i)
+		s1.push_back(1);
+	for (auto i = s2.size(); i < p; ++i)
+		s2.push_back(1);
+	dim_vec s3(p, 1);
+	for (size_t i = 0; i < p; ++i)
+	{
+		_int adim = s1[i];
+		_int bdim = s2[i];
+		if (adim == bdim)
+			intersection.push_back(i);
+		else if (adim != bdim)
+			difference.push_back(i);
+
+		if (adim != 1 && bdim != 1 && adim != bdim)
+			throw std::runtime_error("mis matching shapes");
+		s3[i] = std::max<_int>(adim, bdim);
+	}
+
+	return s3;
+}
+
+
+inline dim_vec broadcast(dim_vec& s1, dim_vec& s2)
+{
+	/*
+	 *	If the arrays don’t have the same rank then prepend the shape of the lower rank array with 1s until both shapes have the same length.
+	 *	The two arrays are compatible in a dimension if they have the same size in the dimension or if one of the arrays has size 1 in that dimension.
+	 *	The arrays can be broadcast together iff they are compatible with all dimensions.
+     *	After broadcasting, each array behaves as if it had shape equal to the element-wise maximum of shapes of the two input arrays.
+	 *	In any dimension where one array had size 1 and the other array had size greater than 1, the first array behaves as if it were copied along that dimension.
+	 */
+	dim_vec inter;
+	dim_vec differ;
+	return broadcast_contribution(s1, s2, differ, inter);
+}
+
+
+inline size_t contribution(dim_vec& s1, dim_vec& s2)
+{
+	if (s1.size() > s2.size())
+		s2 = broadcast(s1, s2);
+	else if (s1.size() < s2.size())
+		s1 = broadcast(s1, s2);
+
+	for (size_t i = 0; i < s1.size(); ++i)
+	{
+		if (s1[i] != s2[i])
+			return i;
+	}
+	return 0;
+}
+
 
 //
 //

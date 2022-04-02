@@ -1,7 +1,6 @@
 #include "thread_pool.h"
 
 
-
 void Thread::queue_loop()
 {
 	while (true)
@@ -76,7 +75,7 @@ void ThreadPool::wait()
 		wait(id);
 }
 
-void ThreadPool::wait(const std::thread::id id) 
+void ThreadPool::wait(const std::thread::id id)
 {
 	threads[id]->wait();
 }

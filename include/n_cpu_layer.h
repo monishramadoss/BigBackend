@@ -4,34 +4,43 @@
 #include "types.h"
 #include "tensor.h"
 
-namespace naive
+
+class binary_op : public compute_job // operate on n dim
 {
-	class matmul final : public compute_job
-	{
-	public:
-		matmul(float alpha=1.0, float beta=1.0);
+public:
+	binary_op();
+	tensor& operator()(tensor&, tensor&);
+	virtual void kernel(tensor&, tensor&, tensor&);
+	void run() override;
+};
 
-		tensor batch(tensor& x, tensor& w, tensor& y);
-		tensor operator()(tensor& x, tensor& w);
-		void kernel(tensor& x, tensor& w, tensor& y);
-		tensor operator()(tensor& x, tensor& w, tensor& z);
+class add : public binary_op
+{
+public:
+	add() : binary_op() {}
+	static void kernel(tensor&, tensor&, tensor&);
+};
 
-		void run() override;
 
-	private:
-		float alpha;
-		float beta;
-	};
+class sub : public binary_op
+{
+public:
+	sub() : binary_op() {}
+	static void kernel(tensor&, tensor&, tensor&);
+};
 
-	class relu : public compute_job
-	{
-	public:
-		relu(bool in_place=false);
-		tensor operator()(tensor&);
-		void kernel(tensor&, tensor&);
-		void run() override;
-	private:
-		bool in_place;
-	};
 
-}
+class mul : public binary_op
+{
+public:
+	mul() : binary_op() {}
+	static void kernel(tensor&, tensor&, tensor&);
+};
+
+
+class true_div : public binary_op
+{
+public:
+	true_div() : binary_op() {}
+	static void kernel(tensor&, tensor&, tensor&);
+};

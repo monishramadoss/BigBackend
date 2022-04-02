@@ -44,6 +44,7 @@ inline char element_size(Format fmt)
 
 typedef size_t _int;
 typedef char byte_;
+
 using offset = std::vector<std::pair<_int, _int>>;
 using dim_vec = std::vector<_int>;
 using data_buffer = std::vector<byte_>;
