@@ -8,29 +8,30 @@
 #include "types.h"
 #include "storage.h"
 #include "views.h"
+#include "compute.h"
 
 class compute_job;
 
-class tensor
+class tensor : public std::enable_shared_from_this<tensor>
 {
 public:
 	tensor();
 	tensor(byte_* data, std::vector<_int>& shape, Format fmt = Format::kFormatFp32);
 	tensor(byte_* data, const std::vector<_int>& shape, Format fmt = Format::kFormatFp32);
-	tensor(views, tensor*, const Format);
-	
-	tensor(tensor&& t);
+	tensor(views, tensor*, Format);
+
 	tensor(const tensor& t);
+	tensor(tensor&& t) noexcept;
 
 	tensor& operator=(const tensor& t);
-	tensor& operator=(tensor&&);
+	tensor& operator=(tensor&&) noexcept;
 
-	~tensor() = default;
+	~tensor();
 
 	tensor reshape(std::vector<int>& new_shape);
 	tensor reshape(const std::vector<int>& new_shape);
 
-	tensor& operator[](const _int i);
+	tensor& operator[](_int i);
 
 	tensor operator+(tensor& w);
 	tensor operator-(tensor& w);
@@ -48,13 +49,12 @@ public:
 	byte_* get_data();
 	void set_data(const byte_*, _int = 0) const;
 	void set_data(tensor&) const;
-
-	void set_src_kernel(compute_job* src) { src_kernel = src; }
-	[[nodiscard]] compute_job* get_src_kernel() const { return src_kernel; }
-	void set_dst_kernel(compute_job* dst) { dst_kernel = dst; }
-	[[nodiscard]] compute_job* get_dst_kernel() const { return dst_kernel; }
-
 	[[nodiscard]] tensor* get_parent() const { return parent.get(); }
+	std::shared_ptr<tensor> getptr() { return shared_from_this(); }
+
+	[[nodiscard]] static std::shared_ptr<tensor> create() {
+		return std::make_shared<tensor>();
+	}
 
 private:
 	//std::shared_ptr<tensor> gradient;
@@ -66,10 +66,7 @@ private:
 	[[nodiscard]] byte_* get_storage_data() const;
 	[[nodiscard]] std::pair<_int, _int> get_offset() const;
 	void clear_storage();
-	friend compute_job;
-	compute_job* src_kernel = nullptr;
-	compute_job* dst_kernel = nullptr;
+
 	views view;
 	_int size_in_bytes = 0;
-
 };

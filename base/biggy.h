@@ -4,12 +4,17 @@
 #pragma once
 
 
-
 #include <fstream>
 #include <memory>
 #include <vector>
 
-#include "init.h"
-#include "tensor.h"
-#include "n_cpu_layer.h"
 
+#include "init.h"
+
+#include "tensor.h"
+#include "compute.h"
+#include "naive_cpu/binary_ops.hpp"
+
+
+
+#include "vulkan_device/binary_ops.hpp"

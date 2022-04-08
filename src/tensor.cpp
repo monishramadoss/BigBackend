@@ -11,21 +11,26 @@ class base_storage;
 
 tensor::tensor() = default;
 
-tensor::tensor(byte_* data, std::vector<_int>& shape, Format fmt) : local_tensor_id(++global_tensor_id), dtype(fmt), view(element_size(fmt), shape), size_in_bytes(view.size_in_bytes())
+tensor::tensor(byte_* data, std::vector<_int>& shape, Format fmt) : local_tensor_id(++global_tensor_id), dtype(fmt),
+                                                                    view(element_size(fmt), shape),
+                                                                    size_in_bytes(view.size_in_bytes())
 {
 	mdata = std::make_shared<base_storage>(data, size_in_bytes);
 	delete[] data;
 	shard_state.clear();
 }
 
-tensor::tensor(byte_* data, const std::vector<_int>& shape, Format fmt) : local_tensor_id(++global_tensor_id), dtype(fmt), view(element_size(fmt), shape), size_in_bytes(view.size_in_bytes())
+tensor::tensor(byte_* data, const std::vector<_int>& shape, Format fmt) : local_tensor_id(++global_tensor_id),
+                                                                          dtype(fmt), view(element_size(fmt), shape),
+                                                                          size_in_bytes(view.size_in_bytes())
 {
 	mdata = std::make_shared<base_storage>(data, size_in_bytes);
 	delete[] data;
 	shard_state.clear();
 }
 
-tensor::tensor(views v, tensor* ptr, const Format fmt) : local_tensor_id(++global_tensor_id), dtype(fmt), view(std::move(v)), size_in_bytes(view.size_in_bytes())
+tensor::tensor(views v, tensor* ptr, const Format fmt) : local_tensor_id(++global_tensor_id), dtype(fmt),
+                                                         view(std::move(v)), size_in_bytes(view.size_in_bytes())
 {
 	if (this != ptr && parent == nullptr)
 	{
@@ -34,19 +39,19 @@ tensor::tensor(views v, tensor* ptr, const Format fmt) : local_tensor_id(++globa
 	}
 }
 
-tensor::tensor(tensor&& t) = default;
+tensor::tensor(tensor&& t) noexcept = default;
 
-tensor::tensor(const tensor& t) : local_tensor_id(t.local_tensor_id), dtype(t.dtype), children(t.children), mdata(t.mdata),
-                                 src_kernel(t.src_kernel), dst_kernel(t.dst_kernel), view(t.view), size_in_bytes(t.size_in_bytes)
+tensor::tensor(const tensor& t) : local_tensor_id(t.local_tensor_id), dtype(t.dtype),
+								children(t.children), mdata(t.mdata), view(t.view), size_in_bytes(t.size_in_bytes)
 {
-	std::cout << "Copy Operator" << std::endl;
-	if(parent == nullptr)
+	std::cout << "Tensor Copy Operator" << std::endl;
+	if (parent == nullptr)
 		parent = t.parent;
 }
 
-tensor& tensor::operator=(const tensor& t) 
+tensor& tensor::operator=(const tensor& t)
 {
-	std::cout << "Assign Operator" << std::endl;
+	std::cout << "Tensor Assign Operator" << std::endl;
 	if (this == &t && local_tensor_id == t.local_tensor_id)
 		return *this;
 
@@ -58,32 +63,31 @@ tensor& tensor::operator=(const tensor& t)
 	dtype = t.dtype;
 	size_in_bytes = t.size_in_bytes;
 	mdata = t.mdata;
-	src_kernel = t.src_kernel;
-	dst_kernel = t.dst_kernel;
-	
 	return *this;
-
 }
 
-tensor& tensor::operator=(tensor&& t)
+tensor& tensor::operator=(tensor&& t) noexcept
 {
-	std::cout << "Assigned Move Operator" << std::endl;
+	std::cout << "Tensor Assigned Move Operator" << std::endl;
 	if (this == &t)
 		return *this;
 
-	parent = std::make_shared<tensor>(tensor(*t.parent));
+	if(t.parent != nullptr)
+		parent = std::make_shared<tensor>(*t.parent);
 
 	local_tensor_id = t.local_tensor_id;
 	children = std::move(t.children);
 	view = t.view;
 	dtype = t.dtype;
 	size_in_bytes = t.size_in_bytes;
-	mdata = std::move(t.mdata);	
-	src_kernel = t.src_kernel;
-	dst_kernel = t.dst_kernel;
+	mdata = std::move(t.mdata);
 	return *this;
 }
 
+tensor::~tensor()
+{
+	//mdata->get_device();
+};
 
 std::pair<_int, _int> tensor::get_offset() const
 {
@@ -123,16 +127,16 @@ byte_* tensor::get_data()
 	if (mdata != nullptr)
 		return mdata->get_data();
 
-	for(const auto& [fst, snd]: view.offset)
+	for (const auto& [fst, snd] : view.offset)
 		offset += fst;
 
-	for(auto& p = parent; p != nullptr; p = p->parent)
+	for (auto& p = parent; p != nullptr; p = p->parent)
 	{
-		if(src == nullptr)
+		if (src == nullptr)
 		{
 			for (const auto& [fst, snd] : p->view.offset)
 				offset += fst;
-			if(p->mdata != nullptr)
+			if (p->mdata != nullptr)
 			{
 				src = p->mdata->get_data();
 				break;
@@ -173,19 +177,18 @@ void tensor::set_data(tensor& t) const
 	if (p != nullptr)
 		p->set_data(t);
 	throw std::runtime_error("Set data of tensor Not finished");
-
 }
 
 tensor tensor::reshape(std::vector<int>& new_shape)
 {
 	const views new_view = view.reshape(new_shape);
-	return { new_view, this, dtype};
+	return {new_view, this, dtype};
 }
 
 tensor tensor::reshape(const std::vector<int>& new_shape)
 {
 	const auto new_view = view.reshape(new_shape);
-	return { new_view, this, dtype };
+	return {new_view, this, dtype};
 }
 
 tensor& tensor::operator[](const _int i)
@@ -196,10 +199,9 @@ tensor& tensor::operator[](const _int i)
 
 byte_* tensor::get_storage_data() const
 {
-	if(mdata==nullptr)
+	if (mdata == nullptr)
 	{
 		return parent->get_storage_data(); // src;
 	}
-	else
-		return mdata->get_data();
+	return mdata->get_data();
 }

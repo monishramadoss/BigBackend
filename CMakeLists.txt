@@ -5,8 +5,6 @@ cmake_minimum_required (VERSION 3.9)
 project ("bigbackend")
 
 
-
-
 # Include sub-projects.
 
 add_subdirectory ("src")

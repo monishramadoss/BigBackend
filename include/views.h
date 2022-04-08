@@ -7,7 +7,10 @@
 class views
 {
 public:
-	views() : t_size(0), d_size(0) {}
+	views() : t_size(0), d_size(0)
+	{
+	}
+
 	explicit views(_int, dim_vec);
 	//views(views&) = default;
 	views(views&&) noexcept;
@@ -16,7 +19,7 @@ public:
 	views& operator=(const views&) = default;
 
 	views select(int, _int) const;
-//	views select(const std::vector<std::string>&) const;
+	//	views select(const std::vector<std::string>&) const;
 
 	[[nodiscard]] _int ndim() const { return mShape.size(); }
 	views reshape(std::vector<int>&) const;
@@ -35,5 +38,4 @@ private:
 	dim_vec mShape;
 	dim_vec mStride;
 	dim_vec mSize;
-
 };

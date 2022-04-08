@@ -483,7 +483,7 @@ build cmake_object_order_depends_target_backend: phony || src\CMakeFiles\backend
 
 build src\CMakeFiles\backend.dir\compute.cpp.obj: CXX_COMPILER__backend_Debug C$:\Users\monish\source\repos\bigbackend\src\compute.cpp || cmake_object_order_depends_target_backend
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++17
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
+  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\Users\monish\source\repos\bigbackend\layers -IC:\VulkanSDK\1.3.204.1\Include
   OBJECT_DIR = src\CMakeFiles\backend.dir
   OBJECT_FILE_DIR = src\CMakeFiles\backend.dir
   TARGET_COMPILE_PDB = src\CMakeFiles\backend.dir\backend.pdb
@@ -491,7 +491,7 @@ build src\CMakeFiles\backend.dir\compute.cpp.obj: CXX_COMPILER__backend_Debug C$
 
 build src\CMakeFiles\backend.dir\device.cpp.obj: CXX_COMPILER__backend_Debug C$:\Users\monish\source\repos\bigbackend\src\device.cpp || cmake_object_order_depends_target_backend
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++17
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
+  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\Users\monish\source\repos\bigbackend\layers -IC:\VulkanSDK\1.3.204.1\Include
   OBJECT_DIR = src\CMakeFiles\backend.dir
   OBJECT_FILE_DIR = src\CMakeFiles\backend.dir
   TARGET_COMPILE_PDB = src\CMakeFiles\backend.dir\backend.pdb
@@ -499,7 +499,7 @@ build src\CMakeFiles\backend.dir\device.cpp.obj: CXX_COMPILER__backend_Debug C$:
 
 build src\CMakeFiles\backend.dir\device_memory.cpp.obj: CXX_COMPILER__backend_Debug C$:\Users\monish\source\repos\bigbackend\src\device_memory.cpp || cmake_object_order_depends_target_backend
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++17
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
+  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\Users\monish\source\repos\bigbackend\layers -IC:\VulkanSDK\1.3.204.1\Include
   OBJECT_DIR = src\CMakeFiles\backend.dir
   OBJECT_FILE_DIR = src\CMakeFiles\backend.dir
   TARGET_COMPILE_PDB = src\CMakeFiles\backend.dir\backend.pdb
@@ -507,7 +507,7 @@ build src\CMakeFiles\backend.dir\device_memory.cpp.obj: CXX_COMPILER__backend_De
 
 build src\CMakeFiles\backend.dir\exceptions.cpp.obj: CXX_COMPILER__backend_Debug C$:\Users\monish\source\repos\bigbackend\src\exceptions.cpp || cmake_object_order_depends_target_backend
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++17
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
+  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\Users\monish\source\repos\bigbackend\layers -IC:\VulkanSDK\1.3.204.1\Include
   OBJECT_DIR = src\CMakeFiles\backend.dir
   OBJECT_FILE_DIR = src\CMakeFiles\backend.dir
   TARGET_COMPILE_PDB = src\CMakeFiles\backend.dir\backend.pdb
@@ -515,15 +515,7 @@ build src\CMakeFiles\backend.dir\exceptions.cpp.obj: CXX_COMPILER__backend_Debug
 
 build src\CMakeFiles\backend.dir\init.cpp.obj: CXX_COMPILER__backend_Debug C$:\Users\monish\source\repos\bigbackend\src\init.cpp || cmake_object_order_depends_target_backend
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++17
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
-  OBJECT_DIR = src\CMakeFiles\backend.dir
-  OBJECT_FILE_DIR = src\CMakeFiles\backend.dir
-  TARGET_COMPILE_PDB = src\CMakeFiles\backend.dir\backend.pdb
-  TARGET_PDB = src\backend.pdb
-
-build src\CMakeFiles\backend.dir\n_cpu_layer.cpp.obj: CXX_COMPILER__backend_Debug C$:\Users\monish\source\repos\bigbackend\src\n_cpu_layer.cpp || cmake_object_order_depends_target_backend
-  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++17
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
+  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\Users\monish\source\repos\bigbackend\layers -IC:\VulkanSDK\1.3.204.1\Include
   OBJECT_DIR = src\CMakeFiles\backend.dir
   OBJECT_FILE_DIR = src\CMakeFiles\backend.dir
   TARGET_COMPILE_PDB = src\CMakeFiles\backend.dir\backend.pdb
@@ -531,7 +523,7 @@ build src\CMakeFiles\backend.dir\n_cpu_layer.cpp.obj: CXX_COMPILER__backend_Debu
 
 build src\CMakeFiles\backend.dir\storage.cpp.obj: CXX_COMPILER__backend_Debug C$:\Users\monish\source\repos\bigbackend\src\storage.cpp || cmake_object_order_depends_target_backend
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++17
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
+  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\Users\monish\source\repos\bigbackend\layers -IC:\VulkanSDK\1.3.204.1\Include
   OBJECT_DIR = src\CMakeFiles\backend.dir
   OBJECT_FILE_DIR = src\CMakeFiles\backend.dir
   TARGET_COMPILE_PDB = src\CMakeFiles\backend.dir\backend.pdb
@@ -539,7 +531,7 @@ build src\CMakeFiles\backend.dir\storage.cpp.obj: CXX_COMPILER__backend_Debug C$
 
 build src\CMakeFiles\backend.dir\tensor.cpp.obj: CXX_COMPILER__backend_Debug C$:\Users\monish\source\repos\bigbackend\src\tensor.cpp || cmake_object_order_depends_target_backend
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++17
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
+  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\Users\monish\source\repos\bigbackend\layers -IC:\VulkanSDK\1.3.204.1\Include
   OBJECT_DIR = src\CMakeFiles\backend.dir
   OBJECT_FILE_DIR = src\CMakeFiles\backend.dir
   TARGET_COMPILE_PDB = src\CMakeFiles\backend.dir\backend.pdb
@@ -547,7 +539,7 @@ build src\CMakeFiles\backend.dir\tensor.cpp.obj: CXX_COMPILER__backend_Debug C$:
 
 build src\CMakeFiles\backend.dir\thread_pool.cpp.obj: CXX_COMPILER__backend_Debug C$:\Users\monish\source\repos\bigbackend\src\thread_pool.cpp || cmake_object_order_depends_target_backend
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++17
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
+  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\Users\monish\source\repos\bigbackend\layers -IC:\VulkanSDK\1.3.204.1\Include
   OBJECT_DIR = src\CMakeFiles\backend.dir
   OBJECT_FILE_DIR = src\CMakeFiles\backend.dir
   TARGET_COMPILE_PDB = src\CMakeFiles\backend.dir\backend.pdb
@@ -555,7 +547,7 @@ build src\CMakeFiles\backend.dir\thread_pool.cpp.obj: CXX_COMPILER__backend_Debu
 
 build src\CMakeFiles\backend.dir\views.cpp.obj: CXX_COMPILER__backend_Debug C$:\Users\monish\source\repos\bigbackend\src\views.cpp || cmake_object_order_depends_target_backend
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++17
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
+  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\Users\monish\source\repos\bigbackend\layers -IC:\VulkanSDK\1.3.204.1\Include
   OBJECT_DIR = src\CMakeFiles\backend.dir
   OBJECT_FILE_DIR = src\CMakeFiles\backend.dir
   TARGET_COMPILE_PDB = src\CMakeFiles\backend.dir\backend.pdb
@@ -569,7 +561,7 @@ build src\CMakeFiles\backend.dir\views.cpp.obj: CXX_COMPILER__backend_Debug C$:\
 #############################################
 # Link the static library src\backend.lib
 
-build src\backend.lib: CXX_STATIC_LIBRARY_LINKER__backend_Debug src\CMakeFiles\backend.dir\compute.cpp.obj src\CMakeFiles\backend.dir\device.cpp.obj src\CMakeFiles\backend.dir\device_memory.cpp.obj src\CMakeFiles\backend.dir\exceptions.cpp.obj src\CMakeFiles\backend.dir\init.cpp.obj src\CMakeFiles\backend.dir\n_cpu_layer.cpp.obj src\CMakeFiles\backend.dir\storage.cpp.obj src\CMakeFiles\backend.dir\tensor.cpp.obj src\CMakeFiles\backend.dir\thread_pool.cpp.obj src\CMakeFiles\backend.dir\views.cpp.obj
+build src\backend.lib: CXX_STATIC_LIBRARY_LINKER__backend_Debug src\CMakeFiles\backend.dir\compute.cpp.obj src\CMakeFiles\backend.dir\device.cpp.obj src\CMakeFiles\backend.dir\device_memory.cpp.obj src\CMakeFiles\backend.dir\exceptions.cpp.obj src\CMakeFiles\backend.dir\init.cpp.obj src\CMakeFiles\backend.dir\storage.cpp.obj src\CMakeFiles\backend.dir\tensor.cpp.obj src\CMakeFiles\backend.dir\thread_pool.cpp.obj src\CMakeFiles\backend.dir\views.cpp.obj
   LANGUAGE_COMPILE_FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
   LINK_FLAGS = /machine:x64
   OBJECT_DIR = src\CMakeFiles\backend.dir
@@ -630,7 +622,7 @@ build cmake_object_order_depends_target_biggy: phony || cmake_object_order_depen
 
 build base\CMakeFiles\biggy.dir\biggy.cpp.obj: CXX_COMPILER__biggy_Debug C$:\Users\monish\source\repos\bigbackend\base\biggy.cpp || cmake_object_order_depends_target_biggy
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
+  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\include -IC:\Users\monish\source\repos\bigbackend\layers -IC:\VulkanSDK\1.3.204.1\Include
   OBJECT_DIR = base\CMakeFiles\biggy.dir
   OBJECT_FILE_DIR = base\CMakeFiles\biggy.dir
   TARGET_COMPILE_PDB = base\CMakeFiles\biggy.dir\
@@ -644,10 +636,10 @@ build base\CMakeFiles\biggy.dir\biggy.cpp.obj: CXX_COMPILER__biggy_Debug C$:\Use
 #############################################
 # Link the executable base\biggy.exe
 
-build base\biggy.exe: CXX_EXECUTABLE_LINKER__biggy_Debug base\CMakeFiles\biggy.dir\biggy.cpp.obj | src\backend.lib C$:\VulkanSDK\1.2.189.2\Lib\vulkan-1.lib || src\backend.lib
+build base\biggy.exe: CXX_EXECUTABLE_LINKER__biggy_Debug base\CMakeFiles\biggy.dir\biggy.cpp.obj | src\backend.lib C$:\VulkanSDK\1.3.204.1\Lib\vulkan-1.lib || src\backend.lib
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
   LINK_FLAGS = /machine:x64 /debug /INCREMENTAL /subsystem:console
-  LINK_LIBRARIES = src\backend.lib  C:\VulkanSDK\1.2.189.2\Lib\vulkan-1.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib
+  LINK_LIBRARIES = src\backend.lib  C:\VulkanSDK\1.3.204.1\Lib\vulkan-1.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib
   OBJECT_DIR = base\CMakeFiles\biggy.dir
   POST_BUILD = cd .
   PRE_LINK = cd .
@@ -707,7 +699,7 @@ build cmake_object_order_depends_target_tensor_test_cpp: phony || cmake_object_o
 
 build tests\CMakeFiles\tensor_test_cpp.dir\tensor_test.cpp.obj: CXX_COMPILER__tensor_test_cpp_Debug C$:\Users\monish\source\repos\bigbackend\tests\tensor_test.cpp || cmake_object_order_depends_target_tensor_test_cpp
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
-  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\tests\backend_include -IC:\VulkanSDK\1.2.189.2\Include -IC:\Users\monish\source\repos\bigbackend\src\bigbackend_include
+  INCLUDES = -IC:\Users\monish\source\repos\bigbackend\tests\backend_include -IC:\Users\monish\source\repos\bigbackend\include -IC:\Users\monish\source\repos\bigbackend\layers -IC:\VulkanSDK\1.3.204.1\Include
   OBJECT_DIR = tests\CMakeFiles\tensor_test_cpp.dir
   OBJECT_FILE_DIR = tests\CMakeFiles\tensor_test_cpp.dir
   TARGET_COMPILE_PDB = tests\CMakeFiles\tensor_test_cpp.dir\
@@ -721,10 +713,10 @@ build tests\CMakeFiles\tensor_test_cpp.dir\tensor_test.cpp.obj: CXX_COMPILER__te
 #############################################
 # Link the executable tests\tensor_test_cpp.exe
 
-build tests\tensor_test_cpp.exe: CXX_EXECUTABLE_LINKER__tensor_test_cpp_Debug tests\CMakeFiles\tensor_test_cpp.dir\tensor_test.cpp.obj | src\backend.lib C$:\VulkanSDK\1.2.189.2\Lib\vulkan-1.lib || src\backend.lib
+build tests\tensor_test_cpp.exe: CXX_EXECUTABLE_LINKER__tensor_test_cpp_Debug tests\CMakeFiles\tensor_test_cpp.dir\tensor_test.cpp.obj | src\backend.lib C$:\VulkanSDK\1.3.204.1\Lib\vulkan-1.lib || src\backend.lib
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
   LINK_FLAGS = /machine:x64 /debug /INCREMENTAL /subsystem:console
-  LINK_LIBRARIES = src\backend.lib  C:\VulkanSDK\1.2.189.2\Lib\vulkan-1.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib
+  LINK_LIBRARIES = src\backend.lib  C:\VulkanSDK\1.3.204.1\Lib\vulkan-1.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib
   OBJECT_DIR = tests\CMakeFiles\tensor_test_cpp.dir
   POST_BUILD = cd .
   PRE_LINK = cd .

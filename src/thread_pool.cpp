@@ -8,7 +8,7 @@ void Thread::queue_loop()
 		std::function<void()> job;
 		{
 			std::unique_lock<std::mutex> lock(queueMutex);
-			condition.wait(lock, [this] {return !jobQueue.empty() || destroying; });
+			condition.wait(lock, [this] { return !jobQueue.empty() || destroying; });
 			if (destroying)
 				break;
 			job = jobQueue.front();
@@ -56,7 +56,7 @@ void ThreadPool::setThreadCount(_int count)
 	threads.clear();
 	for (_int i = 0; i < count; ++i)
 	{
-		auto th =  std::make_unique<Thread>();
+		auto th = std::make_unique<Thread>();
 		thread_ids.push_back(th->pid());
 		threads[th->pid()] = std::move(th);
 	}
@@ -64,12 +64,11 @@ void ThreadPool::setThreadCount(_int count)
 
 std::thread::id ThreadPool::add_job(const std::function<void()>& function)
 {
-
 	threads[thread_ids[0]]->add_job(function);
 	return thread_ids[0];
 }
 
-void ThreadPool::wait() 
+void ThreadPool::wait()
 {
 	for (const auto& id : thread_ids)
 		wait(id);

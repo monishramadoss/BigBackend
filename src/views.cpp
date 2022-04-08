@@ -14,7 +14,9 @@ views::views(_int type_size, dim_vec dst_shape) : t_size(type_size), mShape(std:
 //shape_(std::move(v.shape_)), stride_(std::move(v.stride_)),  size_(std::move(v.size_)) { 
 
 views::views(views&& v) noexcept : offset(std::move(v.offset)), t_size(v.t_size), d_size(v.d_size),
-mShape(std::move(v.mShape)), mStride(std::move(v.mStride)), mSize(std::move(v.mSize)) { }
+                                   mShape(std::move(v.mShape)), mStride(std::move(v.mStride)), mSize(std::move(v.mSize))
+{
+}
 
 views::views(const views& v) : t_size(v.t_size), d_size(v.d_size)
 {
@@ -33,7 +35,8 @@ views::views(const views& v) : t_size(v.t_size), d_size(v.d_size)
 views views::reshape(std::vector<int>& new_shape) const
 {
 	std::vector<_int> _new_shape(new_shape.size(), 0);
-	int _size = std::accumulate<std::vector<int>::const_iterator, int>(new_shape.begin(), new_shape.end(), 1, std::multiplies<int>());
+	int _size = std::accumulate<std::vector<int>::const_iterator, int>(new_shape.begin(), new_shape.end(), 1,
+	                                                                   std::multiplies<int>());
 
 	for (_int i = 0; i < new_shape.size(); ++i)
 	{
@@ -44,7 +47,8 @@ views views::reshape(std::vector<int>& new_shape) const
 	}
 
 	if (_size < 0)
-		_size = std::accumulate<std::vector<int>::const_iterator, int>(new_shape.begin(), new_shape.end(), 1, std::multiplies<int>());
+		_size = std::accumulate<std::vector<int>::const_iterator, int>(new_shape.begin(), new_shape.end(), 1,
+		                                                               std::multiplies<int>());
 
 	if (d_size != _size)
 		throw std::bad_alloc();
@@ -55,7 +59,8 @@ views views::reshape(std::vector<int>& new_shape) const
 views views::reshape(const std::vector<int>& new_shape) const
 {
 	std::vector<_int> _new_shape(new_shape.size(), 0);
-	int _size = std::accumulate<std::vector<int>::const_iterator, int>(new_shape.begin(), new_shape.end(), 1, std::multiplies<int>());
+	int _size = std::accumulate<std::vector<int>::const_iterator, int>(new_shape.begin(), new_shape.end(), 1,
+	                                                                   std::multiplies<int>());
 
 	for (_int i = 0; i < new_shape.size(); ++i)
 	{
@@ -66,7 +71,8 @@ views views::reshape(const std::vector<int>& new_shape) const
 	}
 
 	if (_size < 0)
-		_size = std::accumulate<std::vector<int>::const_iterator, int>(new_shape.begin(), new_shape.end(), 1, std::multiplies<int>());
+		_size = std::accumulate<std::vector<int>::const_iterator, int>(new_shape.begin(), new_shape.end(), 1,
+		                                                               std::multiplies<int>());
 
 	if (d_size != _size)
 		throw std::bad_alloc();
@@ -81,9 +87,8 @@ views views::select(int axis, _int idx) const
 	dst_shape.erase(dst_shape.begin() + axis);
 	if (dst_shape.empty())
 		dst_shape.push_back(1);
-		
+
 	views view(t_size, dst_shape);
 	axis_idx(axis, idx, t_size, mShape, mStride, view.offset);
 	return view;
 }
-

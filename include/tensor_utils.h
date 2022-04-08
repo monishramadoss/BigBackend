@@ -8,7 +8,8 @@
 #include <string>
 #include <iostream>
 
-static void rewrite_stride_size(const dim_vec& shape, dim_vec& stride, dim_vec& size) {
+static void rewrite_stride_size(const dim_vec& shape, dim_vec& stride, dim_vec& size)
+{
 	stride.resize(shape.size());
 	size.resize(shape.size() + 1);
 
@@ -18,7 +19,8 @@ static void rewrite_stride_size(const dim_vec& shape, dim_vec& stride, dim_vec& 
 	for (_int i = 1; i < shape.size(); ++i)
 		stride[i] = shape[i - 1] * stride[i - 1];
 
-	for (_int i = shape.size() - 1;;) {
+	for (_int i = shape.size() - 1;;)
+	{
 		size[i] = shape[i] * size[i + 1];
 		if (i == 0)
 			break;
@@ -32,9 +34,9 @@ static _int count(const dim_vec& shape, _int start_axis = 0, int64_t end_axis = 
 {
 	if (end_axis == -1) end_axis = static_cast<int>(shape.size());
 	if (start_axis == end_axis) return 0;
-	
-	return  std::accumulate<std::vector<_int>::const_iterator, _int>
-	(shape.begin() + start_axis, shape.begin() + end_axis, 1,  std::multiplies<_int>());
+
+	return std::accumulate<std::vector<_int>::const_iterator, _int>
+		(shape.begin() + start_axis, shape.begin() + end_axis, 1, std::multiplies<_int>());
 }
 
 
@@ -57,7 +59,6 @@ static void axis_idx(int64_t axis, _int idx, _int t_size, const dim_vec& shape, 
 
 	for (_int i = 0; i < upper_split_size; ++i)
 		offsets.emplace_back(std::make_pair((off + i * lower_split_size), split_stride));
-
 }
 
 static void multi_idx(std::vector<std::string>& idx, const dim_vec& shape, const dim_vec& stride, offset& offsets)
@@ -70,7 +71,7 @@ inline bool check_same_shape(const dim_vec& s1, const dim_vec& s2)
 {
 	if (s1.size() != s2.size())
 		return false;
-	for(_int i = 0; i < s1.size(); ++i)
+	for (_int i = 0; i < s1.size(); ++i)
 	{
 		if (s1[i] != s2[i])
 			return false;

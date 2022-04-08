@@ -24,7 +24,6 @@ enum class Format
 };
 
 
-
 inline char element_size(Format fmt)
 {
 	if (fmt == Format::kFormatFp32 || fmt == Format::kFormatInt32 || fmt == Format::kFormatBool)
@@ -42,8 +41,8 @@ inline char element_size(Format fmt)
 	return 0;
 }
 
-typedef size_t _int;
-typedef char byte_;
+using _int = size_t;
+using byte_ = char;
 
 using offset = std::vector<std::pair<_int, _int>>;
 using dim_vec = std::vector<_int>;

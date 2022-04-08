@@ -28,7 +28,6 @@ public:
 //TODO if mpi is working pause threadpool
 class ThreadPool
 {
-
 public:
 	_int num_threads{};
 	std::vector<std::thread::id> thread_ids;
@@ -36,5 +35,5 @@ public:
 	std::thread::id add_job(const std::function<void()>&);
 	void setThreadCount(_int count);
 	void wait();
-	void wait(const std::thread::id);
+	void wait(std::thread::id);
 };

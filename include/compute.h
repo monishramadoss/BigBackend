@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <numeric>
+#include <memory>
 #include <functional>
 #include <algorithm>
 
@@ -11,51 +12,81 @@
 // TODO update compute flow graph with updated data flow with sync and async pipelines
 
 
-class compute_job
+class compute_job: public std::enable_shared_from_this<compute_job>
 {
-
 private:
 	void split_kernel();
 
 protected:
 	std::vector<compute_job> parallel_kernels;
 	device dev = get_avalible_device();
-	int state; // -1 = error 0 = running 1 = transit 2 = complete
-	
+	int state{}; // -1 = error 0 = running 1 = transit 2 = complete
 public:
 	compute_job();
+	compute_job(device& dev);
+
 	compute_job(compute_job&);
 	compute_job(const compute_job&);
 	compute_job(compute_job&&) noexcept;
 
-	size_t local_task_id;
+	compute_job& operator=(const compute_job&);
 
-	std::vector<tensor> m_inputs;
-	std::vector<tensor> m_outputs;
+	size_t local_task_id;
+	std::string m_type = "empty";
 
 	dim_vec similar;
 	dim_vec differ;
 
-	void push_input(tensor& input);
-	void push_output(tensor& output);
+	void set_input(tensor& input);
+	void set_output(tensor& output);
+	std::shared_ptr<tensor> get_input(size_t i);
+	std::shared_ptr<tensor> get_output(size_t i = 0);
 
-	virtual void run() { state = 2; }
+	std::shared_ptr<compute_job> getptr() { return shared_from_this(); }
+	// ReSharper disable once CppSmartPointerVsMakeFunction
+	[[nodiscard]] static std::shared_ptr<compute_job> create() { return std::shared_ptr<compute_job>(new compute_job()); }
+
+	virtual void run();
 	virtual ~compute_job();
 };
 
 
-
 #ifdef VULKAN
-
+#include <vulkan/vulkan.h>
+#include "vulkan.hpp"
 
 static std::vector<uint32_t> compileSource(const std::string& source)
 {
-	if (system(std::string("glslangValidator --stdin -S comp -V -o tmp_kp_shader.comp.spv << END\n" + source + "\nEND").c_str()))
+	if (system(
+		std::string("glslangValidator --stdin -S comp -V -o tmp_kp_shader.comp.spv << END\n" + source + "\nEND").
+		c_str()))
 		throw std::runtime_error("Error running glslangValidator command");
 	std::ifstream fileStream("./tmp_kp_shader.comp.spv", std::ios::binary);
 	std::vector<unsigned char> buffer;
 	buffer.insert(buffer.begin(), std::istreambuf_iterator<char>(fileStream), {});
-	return { reinterpret_cast<uint32_t*>(buffer.data()), reinterpret_cast<uint32_t*>(buffer.data() + buffer.size()) };
+	return {reinterpret_cast<uint32_t*>(buffer.data()), reinterpret_cast<uint32_t*>(buffer.data() + buffer.size())};
 }
+
+class vulkan_compute_object final : public compute_job
+{
+private:
+	VkShaderModule m_shader_module{};
+	VkPipelineLayout m_pipeline_layout{};
+	VkCommandBuffer m_command_buffer{};
+
+	VkDescriptorPool m_descriptor_pool{};
+	VkDescriptorSet m_descriptor_set{};
+	VkDescriptorSetLayout m_descriptor_set_layout{};
+
+
+public:
+	vulkan_compute_object();
+	vulkan_compute_object(vulkan_compute_object&);
+	vulkan_compute_object(const vulkan_compute_object&);
+	vulkan_compute_object(vulkan_compute_object&&) noexcept;
+
+	~vulkan_compute_object() override;
+	void run() override = 0;
+};
 
 #endif
