@@ -54,7 +54,7 @@ public:
 	void set_input(const std::shared_ptr<tensor>& input, const std::shared_ptr<compute_job>& cmp);
 	void set_output(const std::shared_ptr<tensor>& output, const std::shared_ptr<compute_job>& cmp);
 
-	std::shared_ptr<tensor> get_input(size_t i, const std::shared_ptr<compute_job>& cmp) const;
+	[[nodiscard]] std::shared_ptr<tensor> get_input(size_t i, const std::shared_ptr<compute_job>& cmp) const;
 	std::shared_ptr<tensor> get_output(size_t i, std::shared_ptr<compute_job>& cmp);
 
 	virtual ~device();
@@ -76,7 +76,7 @@ static std::vector<device> devices{};
 #ifdef VULKAN
 #include <vulkan/vulkan.h>
 
-class vk_device final : public device
+class vk_device : public device
 {
 public:
 	vk_device(const VkInstance& instance, const VkPhysicalDevice& pDevice);
@@ -104,8 +104,6 @@ public:
 
 
 private:
-	void create_staging_buffer();
-
 	VkInstance m_instance;
 	VkPhysicalDevice m_physical_device;
 	VkDebugUtilsMessengerEXT m_debug_messenger{};
@@ -127,11 +125,6 @@ private:
 
 	std::vector<uint32_t> m_staging_queue_index;
 	VkQueue m_staging_queue{};
-
-
-	VkBuffer m_staging_buffer;
-	VkDeviceMemory m_staging_memory;
-	size_t m_staging_size = 4096;
 };
 
 static std::vector<vk_device> vk_devices{};

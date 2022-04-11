@@ -435,8 +435,7 @@ inline void allocateAndBindBuffers(const VkDevice& device, const VkPhysicalDevic
 		offset += bufferMemoryRequirements.size;
 		if (bufferMemoryRequirements.size % bufferMemoryRequirements.alignment != 0)
 		{
-			offset += bufferMemoryRequirements.alignment - bufferMemoryRequirements.size % bufferMemoryRequirements.
-				alignment;
+			offset += bufferMemoryRequirements.alignment - bufferMemoryRequirements.size % bufferMemoryRequirements.alignment;
 		}
 	}
 }

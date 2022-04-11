@@ -59,19 +59,35 @@ base_storage::~base_storage()
 #ifdef VULKAN
 #include "vulkan.hpp"
 
-vk_device_storage::vk_device_storage(_int size) : base_storage(size, get_vk_device()), dev(get_vk_device())
+vk_device_storage::vk_device_storage(_int size) : base_storage(size, get_vk_device()), device(get_vk_device())
 {
-	auto* vk_data = dev.get_device_memory(data);
-	dev.set_device_memory(vk_data, data);
+	VkBufferCreateInfo bufferCreateInfo{};
+	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferCreateInfo.size = byte_size;
+	bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if (vkCreateBuffer(device.get_device(), &bufferCreateInfo, nullptr, &buffer) != VK_SUCCESS)
+		throw std::runtime_error("failed to create buffer");
+	dev_data = device.allocate_device_memory(&buffer);
+	device.set_device_memory(dev_data, data);
 }
 
 vk_device_storage::vk_device_storage(const byte_* src, _int size) : base_storage(size, get_vk_device()),
-                                                                    dev(get_vk_device())
+                                                                    device(get_vk_device())
 {
-	auto* vk_data = dev.get_device_memory(data);
-	dev.set_device_memory(vk_data, data);
-}
+	VkBufferCreateInfo bufferCreateInfo{};
+	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferCreateInfo.size = byte_size;
+	bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+	if (vkCreateBuffer(device.get_device(), &bufferCreateInfo, nullptr, &buffer) != VK_SUCCESS)
+		throw std::runtime_error("failed to create buffer");
+	dev_data = device.allocate_device_memory(&buffer);
+	device.set_device_memory(dev_data, data);
+	device.copy_memory(data, 0, src, size);
+}
 
 vk_device_storage::vk_device_storage(const vk_device_storage& vkbs) = default;
 

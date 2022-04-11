@@ -19,3 +19,16 @@
 6	1466	6710162726499732	src/CMakeFiles/backend.dir/tensor.cpp.obj	a5eccfbebb75ac6b
 1466	1564	6710162727124710	src/backend.lib	6abcbbb118643051
 1565	1816	6710162729468439	base/biggy.exe	e2cf1f378557ef95
+20	1151	6711962570580308	src/CMakeFiles/backend.dir/device_memory.cpp.obj	8b11068dceff0f13
+32	1738	6711962576460319	base/CMakeFiles/biggy.dir/biggy.cpp.obj	9cfc6f3c59cdf1ed
+11	1752	6711962576600324	src/CMakeFiles/backend.dir/storage.cpp.obj	e6f98929740fb795
+2	1877	6711962577850302	src/CMakeFiles/backend.dir/compute.cpp.obj	2d352b1746a430f3
+28	1923	6711962578300318	src/CMakeFiles/backend.dir/init.cpp.obj	2c85358b8105c5ca
+16	2021	6711962579290315	src/CMakeFiles/backend.dir/tensor.cpp.obj	a5eccfbebb75ac6b
+7	2670	6711962585780338	src/CMakeFiles/backend.dir/device.cpp.obj	3a809cff4f2ffbb2
+2671	2806	6711962586900333	src/backend.lib	6abcbbb118643051
+2812	3153	6711962589820316	tests/tensor_test_cpp.exe	23e0d864bf9c7b05
+2806	3299	6711962591580355	base/biggy.exe	e2cf1f378557ef95
+2	1245	6711965693250243	src/CMakeFiles/backend.dir/compute.cpp.obj	2d352b1746a430f3
+1245	1342	6711965693970595	src/backend.lib	6abcbbb118643051
+1343	1519	6711965695720233	base/biggy.exe	e2cf1f378557ef95

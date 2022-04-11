@@ -36,14 +36,6 @@ inline size_t nextPowerOfTwo(size_t size)
 	return _size << 1;
 }
 
-//
-//inline size_t nextPowerOfTwo(size_t size)
-//{
-//	const unsigned power = 1 + std::llroundl(std::log2l(static_cast<long double>(size)));
-//	return static_cast<size_t>(1) << power;
-//}
-
-
 struct block
 {
 	size_t size{};
@@ -133,22 +125,24 @@ class vk_device_allocator
 {
 public:
 	vk_device_allocator(const VkDevice& dev, size_t size = 4096);
-	vk_block* allocate(size_t size, size_t alignment, int memoryTypeIndex);
+	vk_block* allocate(size_t size, size_t alignment, uint32_t memoryTypeIndex);
 	void deallocate(vk_block* blk) const;
 
-	vk_block* transfer_src_buffer(const VkBuffer* src_buffer);
-	vk_block* transfer_dst_buffer(const VkBuffer* dst_buffer);
+	vk_block* transfer_on_buffer(size_t size, size_t alignment, uint32_t memoryTypeBits);
+	vk_block* transfer_off_buffer(size_t size, size_t alignment, uint32_t memoryTypeBits);
 
-	void free_transfer_src_buffer(vk_block*) const;
-	void free_transfer_dst_buffer(vk_block*) const;
+	void free_transfer_on_buffer(const vk_block*) const;
+	void free_transfer_off_buffer(const vk_block*) const;
 private:
 	size_t m_size;
 	size_t m_alignment{};
 	VkDevice m_device;
 	std::vector<std::shared_ptr<vk_chunk>> m_chunks;
 
-	std::unique_ptr<vk_chunk> m_src_transfer_chunk;
-	std::unique_ptr<vk_chunk> m_dst_transfer_chunk;
+	std::unique_ptr<vk_chunk> m_on_transfer_chunk;
+	std::unique_ptr<vk_chunk> m_off_transfer_chunk;
+	VkBuffer m_transfer_on_buffer;
+	VkBuffer m_transfer_off_buffer;
 };
 
 

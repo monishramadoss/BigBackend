@@ -41,6 +41,8 @@ public:
 	vk_device_storage(const byte_* src, _int size);
 	vk_device_storage(const vk_device_storage& vkbs);
 
-	vk_device dev;
+	VkBuffer buffer{};
+	vk_device device;
+	vk_block* dev_data;
 };
 #endif

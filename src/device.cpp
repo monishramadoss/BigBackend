@@ -141,37 +141,6 @@ inline int get_heap_index(const VkMemoryPropertyFlags& flags, const VkPhysicalDe
 }
 
 
-void vk_device::create_staging_buffer()
-{
-	auto property_flag = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-	VkBufferCreateInfo bufferInfo = {};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = m_staging_size;
-	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	bufferInfo.queueFamilyIndexCount = 1;
-	bufferInfo.pQueueFamilyIndices = &m_staging_queue_index.back();
-
-	if (vkCreateBuffer(m_device, &bufferInfo, nullptr, &m_staging_buffer) != VK_SUCCESS)
-		throw std::runtime_error("failed to create buffer!");
-
-	VkMemoryRequirements memoryRequirements;
-	vkGetBufferMemoryRequirements(m_device, m_staging_buffer, &memoryRequirements);
-
-	VkMemoryAllocateInfo alloc_info{};
-	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	alloc_info.allocationSize = m_staging_size;
-	alloc_info.memoryTypeIndex = findMemoryTypeIndex(memoryRequirements.memoryTypeBits, m_memory_properties, false);
-
-	if (vkAllocateMemory(m_device, &alloc_info, nullptr, &m_staging_memory) != VK_SUCCESS)
-		throw std::runtime_error("CANNOT ALLOCATE VULKAN OBJECT");
-
-	void* data = nullptr;
-	vkBindBufferMemory(m_device, m_staging_buffer, m_staging_memory, 0);
-	vkMapMemory(m_device, m_staging_memory, 0, m_staging_size, 0, &data);
-}
-
 vk_device::vk_device(const VkInstance& instance, const VkPhysicalDevice& pDevice) :
 	device(), m_instance(instance), m_physical_device(pDevice), m_device_allocator(nullptr)
 {
