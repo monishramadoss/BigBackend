@@ -15,6 +15,7 @@ _int getTotalDiskSpace()
 {
 	return getTotalSystemMemory();
 }
+
 #else 
 #include <unistd.h>
 _int getTotalSystemMemory(){

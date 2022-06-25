@@ -12,6 +12,6 @@ add_subdirectory ("base")
 
 set_property(TARGET backend PROPERTY CXX_STANDARD 17)
 
-include(CTest)
-enable_testing()
-add_subdirectory("tests")
+# include(CTest)
+# enable_testing()
+# add_subdirectory("tests")
