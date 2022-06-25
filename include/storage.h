@@ -1,48 +1,45 @@
-#pragma once
-#include <fstream>
-#include <string>
-
-#include "device.h"
-#include "device_memory.h"
-#include "types.h"
-
-
-static _int io_{0};
-
-class base_storage
-{
-public:
-	base_storage(_int size);
-	base_storage(const byte_* src, _int size);
-	base_storage(const base_storage& bs);
-	base_storage(_int size, device& dev);
-	[[nodiscard]] byte_* get_data() const { return data->ptr + data->offset; }
-	[[nodiscard]] const device& get_device() const { return dev; }
-	void set_data(const byte_* src, _int dst_offset, _int src_offset, _int size);
-	void offload();
-	void onload();
-	~base_storage();
-protected:
-	block* data;
-	_int byte_size;
-
-	device dev = get_avalible_device();
-	std::string file_name;
-	std::fstream afile;
-};
-
-#ifdef VULKAN
-#include <vulkan/vulkan.h>
-
-class vk_device_storage : base_storage
-{
-public:
-	vk_device_storage(_int size);
-	vk_device_storage(const byte_* src, _int size);
-	vk_device_storage(const vk_device_storage& vkbs);
-
-	VkBuffer buffer{};
-	vk_device device;
-	vk_block* dev_data;
-};
-#endif
+//#pragma once
+//#include <fstream>
+//#include <string>
+//
+//#include "device.h"
+//#include "device_memory.h"
+//#include "types.h"
+//
+//
+//
+//class storage final
+//{
+//public:
+//	explicit storage(_int size);
+//	storage(const storage& bs);
+//	[[nodiscard]] byte_* get_data() const { return data->ptr + data->offset; }
+//	void set_data(const byte_* src, _int dst_offset, _int src_offset, _int size);
+//
+//	~storage();
+//protected:
+//	block* data;
+//};
+//
+//
+//
+//#ifdef VULKAN
+//#include <vulkan/vulkan.h>
+//
+//class vk_storage final
+//{
+//public:
+//	vk_storage(_int size);
+//	vk_storage(const vk_storage& vkbs);
+//
+//	[[nodiscard]] VkBuffer get_buffer() const { return buffer; }
+//	[[nodiscard]] size_t get_size() const { return dev_data->size; }
+//	[[nodiscard]] size_t get_offset() const { return dev_data->offset; }
+//	
+//
+//private:
+//	VkBuffer buffer{};
+//	vk_block* dev_data;
+//};
+//#endif
+//

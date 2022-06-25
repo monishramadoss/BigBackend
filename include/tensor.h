@@ -1,23 +1,16 @@
 #pragma once
 #include <vector>
 #include <memory>
-#include <algorithm>
-
-
-#include "device.h"
 #include "types.h"
 #include "storage.h"
 #include "views.h"
-#include "compute.h"
-
-class compute_job;
 
 class tensor : public std::enable_shared_from_this<tensor>
 {
 public:
 	tensor();
-	tensor(byte_* data, std::vector<_int>& shape, Format fmt = Format::kFormatFp32);
-	tensor(byte_* data, const std::vector<_int>& shape, Format fmt = Format::kFormatFp32);
+	tensor(byte_* src, std::vector<_int>& shape, Format fmt = Format::kFormatFp32);
+	tensor(byte_* src, const std::vector<_int>& shape, Format fmt = Format::kFormatFp32);
 	tensor(views, tensor*, Format);
 
 	tensor(const tensor& t);
@@ -33,10 +26,16 @@ public:
 
 	tensor& operator[](_int i);
 
-	tensor operator+(tensor& w);
-	tensor operator-(tensor& w);
-	tensor operator*(tensor& w);
-	tensor operator/(tensor& w);
+	tensor operator+(tensor& rhs);
+	tensor operator-(tensor& rhs);
+	tensor operator*(tensor& rhs);
+	tensor operator/(tensor& rhs);
+
+	tensor operator==(tensor& rhs);
+	tensor operator!=(tensor& rhs);
+	tensor operator<(tensor& rhs);
+	tensor operator>(tensor& rhs);
+
 
 	size_t local_tensor_id{};
 	Format dtype = Format::kFormatInvalid;
@@ -52,9 +51,11 @@ public:
 	[[nodiscard]] tensor* get_parent() const { return parent.get(); }
 	std::shared_ptr<tensor> getptr() { return shared_from_this(); }
 
-	[[nodiscard]] static std::shared_ptr<tensor> create() {
-		return std::make_shared<tensor>();
-	}
+	[[nodiscard]] static std::shared_ptr<tensor> create() {	return std::make_shared<tensor>(); }
+	[[nodiscard]] static std::shared_ptr<tensor> create(byte_* src, std::vector<_int>& shape, Format fmt = Format::kFormatFp32) { return std::make_shared<tensor>(src, shape, fmt); }
+	[[nodiscard]] static std::shared_ptr<tensor> create(byte_* src, const std::vector<_int>& shape, Format fmt = Format::kFormatFp32) { return std::make_shared<tensor>(src, shape, fmt); }
+	[[nodiscard]] static std::shared_ptr<tensor> create(const views& view, tensor* ptr, Format fmt) { return std::make_shared<tensor>(view, ptr, fmt); }
+
 
 private:
 	//std::shared_ptr<tensor> gradient;
@@ -62,10 +63,13 @@ private:
 	std::vector<tensor> children;
 
 	std::vector<int> shard_state;
-	std::shared_ptr<base_storage> mdata;
-	[[nodiscard]] byte_* get_storage_data() const;
+	std::shared_ptr<byte_*> data_ptr{};
+
 	[[nodiscard]] std::pair<_int, _int> get_offset() const;
 	void clear_storage();
+
+	tensor* next = nullptr;
+	tensor* prev = nullptr;
 
 	views view;
 	_int size_in_bytes = 0;

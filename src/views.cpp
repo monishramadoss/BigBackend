@@ -13,6 +13,37 @@ views::views(_int type_size, dim_vec dst_shape) : t_size(type_size), mShape(std:
 //views::views(views& v) : t_size(v.t_size), d_size(v.d_size),
 //shape_(std::move(v.shape_)), stride_(std::move(v.stride_)),  size_(std::move(v.size_)) { 
 
+views::views(): t_size(0), d_size(0)
+{
+}
+
+views& views::operator=(const views&) = default;
+
+_int views::ndim() const
+{
+	return mShape.size();
+}
+
+_int views::size_in_bytes() const
+{
+	return t_size * d_size;
+}
+
+_int views::size(_int idx) const
+{
+	return mSize[idx];
+}
+
+_int views::shape(size_t idx) const
+{
+	return mShape[idx];
+}
+
+dim_vec& views::shape()
+{
+	return mShape;
+}
+
 views::views(views&& v) noexcept : offset(std::move(v.offset)), t_size(v.t_size), d_size(v.d_size),
                                    mShape(std::move(v.mShape)), mStride(std::move(v.mStride)), mSize(std::move(v.mSize))
 {

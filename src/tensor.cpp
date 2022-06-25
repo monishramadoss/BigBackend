@@ -1,4 +1,5 @@
 #include "tensor.h"
+#include "storage_manager.h"
 //#include <mpi.h>
 
 /*
@@ -7,26 +8,28 @@
  */
 
 
-class base_storage;
+class storage;
 
 tensor::tensor() = default;
 
-tensor::tensor(byte_* data, std::vector<_int>& shape, Format fmt) : local_tensor_id(++global_tensor_id), dtype(fmt),
-                                                                    view(element_size(fmt), shape),
-                                                                    size_in_bytes(view.size_in_bytes())
+tensor::tensor(byte_* src, std::vector<_int>& shape, Format fmt) : local_tensor_id(++global_tensor_id), dtype(fmt),
+                                                                   view(element_size(fmt), shape),
+                                                                   size_in_bytes(view.size_in_bytes())
 {
-	mdata = std::make_shared<base_storage>(data, size_in_bytes);
-	delete[] data;
-	shard_state.clear();
+	auto* dst = global_store_manager.allocate_block(size_in_bytes);
+	data_ptr = std::make_shared<byte_*>(dst);
+	global_store_manager.copy_block(dst, src, size_in_bytes);
+	global_store_manager.free_block(src);
 }
 
-tensor::tensor(byte_* data, const std::vector<_int>& shape, Format fmt) : local_tensor_id(++global_tensor_id),
-                                                                          dtype(fmt), view(element_size(fmt), shape),
-                                                                          size_in_bytes(view.size_in_bytes())
+tensor::tensor(byte_* src, const std::vector<_int>& shape, Format fmt) : local_tensor_id(++global_tensor_id),
+                                                                         dtype(fmt), view(element_size(fmt), shape),
+                                                                         size_in_bytes(view.size_in_bytes())
 {
-	mdata = std::make_shared<base_storage>(data, size_in_bytes);
-	delete[] data;
-	shard_state.clear();
+	auto* dst = global_store_manager.allocate_block(size_in_bytes);
+	data_ptr = std::make_shared<byte_*>(dst);
+	global_store_manager.copy_block(dst, src, size_in_bytes);
+	global_store_manager.free_block(src);
 }
 
 tensor::tensor(views v, tensor* ptr, const Format fmt) : local_tensor_id(++global_tensor_id), dtype(fmt),
@@ -42,11 +45,12 @@ tensor::tensor(views v, tensor* ptr, const Format fmt) : local_tensor_id(++globa
 tensor::tensor(tensor&& t) noexcept = default;
 
 tensor::tensor(const tensor& t) : local_tensor_id(t.local_tensor_id), dtype(t.dtype),
-								children(t.children), mdata(t.mdata), view(t.view), size_in_bytes(t.size_in_bytes)
+                                  children(t.children), view(t.view), size_in_bytes(t.size_in_bytes)
 {
 	std::cout << "Tensor Copy Operator" << std::endl;
 	if (parent == nullptr)
 		parent = t.parent;
+	data_ptr = t.data_ptr;
 }
 
 tensor& tensor::operator=(const tensor& t)
@@ -59,10 +63,10 @@ tensor& tensor::operator=(const tensor& t)
 
 	local_tensor_id = t.local_tensor_id;
 	children = t.children;
+	data_ptr = t.data_ptr;
 	view = t.view;
 	dtype = t.dtype;
 	size_in_bytes = t.size_in_bytes;
-	mdata = t.mdata;
 	return *this;
 }
 
@@ -72,21 +76,22 @@ tensor& tensor::operator=(tensor&& t) noexcept
 	if (this == &t)
 		return *this;
 
-	if(t.parent != nullptr)
+	if (t.parent != nullptr)
 		parent = std::make_shared<tensor>(*t.parent);
 
 	local_tensor_id = t.local_tensor_id;
 	children = std::move(t.children);
+	data_ptr = t.data_ptr;
 	view = t.view;
 	dtype = t.dtype;
 	size_in_bytes = t.size_in_bytes;
-	mdata = std::move(t.mdata);
 	return *this;
 }
 
 tensor::~tensor()
 {
-	//mdata->get_device();
+	if (data_ptr != nullptr)
+		global_store_manager.free_block(*data_ptr);
 };
 
 std::pair<_int, _int> tensor::get_offset() const
@@ -109,7 +114,9 @@ std::pair<_int, _int> tensor::get_offset() const
 
 void tensor::clear_storage()
 {
-	mdata.reset();
+	if (data_ptr != nullptr || *data_ptr != nullptr)
+		global_store_manager.free_block(*data_ptr);
+	//mdata.reset();
 }
 
 _int tensor::shape(int idx) const
@@ -124,8 +131,8 @@ byte_* tensor::get_data()
 	_int offset = 0;
 	byte_* src = nullptr;
 
-	if (mdata != nullptr)
-		return mdata->get_data();
+	if (data_ptr != nullptr)
+		return *data_ptr;
 
 	for (const auto& [fst, snd] : view.offset)
 		offset += fst;
@@ -136,28 +143,36 @@ byte_* tensor::get_data()
 		{
 			for (const auto& [fst, snd] : p->view.offset)
 				offset += fst;
-			if (p->mdata != nullptr)
+			if (p->data_ptr != nullptr)
 			{
-				src = p->mdata->get_data();
+				src = *p->data_ptr;
 				break;
 			}
 		}
 	}
 
-	if (mdata == nullptr)
+	if (data_ptr == nullptr || *data_ptr == nullptr)
 	{
-		mdata = std::make_shared<base_storage>(size_in_bytes);
-		mdata->set_data(src, 0, offset, size_in_bytes);
+		auto* new_data = global_store_manager.allocate_block(size_in_bytes);
+		data_ptr = std::make_shared<byte_*>(new_data);
+		global_store_manager.copy_block(new_data, src + offset, size_in_bytes);
 	}
+	/*if (mdata == nullptr)
+	{
+		mdata = std::make_shared<storage>(size_in_bytes);
+		mdata->set_data(src, 0, offset, size_in_bytes);
+	}*/
 
-	return mdata->get_data();
+	//return mdata->get_data();
+
+	return *data_ptr;
 }
 
 
 void tensor::set_data(const byte_* src, _int offset) const
 {
-	if (mdata != nullptr)
-		mdata->set_data(src, 0, 0, size_in_bytes);
+	/*if (mdata != nullptr)
+		mdata->set_data(src, 0, 0, size_in_bytes);*/
 
 	std::shared_ptr<tensor> p = nullptr;
 	for (p = parent; p != nullptr; p = p->parent);
@@ -167,10 +182,10 @@ void tensor::set_data(const byte_* src, _int offset) const
 
 void tensor::set_data(tensor& t) const
 {
-	if (mdata != nullptr)
+	if (data_ptr != nullptr)
 	{
-		for (const auto& i : view.offset)
-			mdata->set_data(t.get_data(), i.first, 0, size_in_bytes);
+		/*for (const auto& i : view.offset)
+			mdata->set_data(t.get_data(), i.first, 0, size_in_bytes);*/
 	}
 	std::shared_ptr<tensor> p = nullptr;
 	for (p = parent; p != nullptr; p = p->parent);
@@ -197,11 +212,3 @@ tensor& tensor::operator[](const _int i)
 	return children.back();
 }
 
-byte_* tensor::get_storage_data() const
-{
-	if (mdata == nullptr)
-	{
-		return parent->get_storage_data(); // src;
-	}
-	return mdata->get_data();
-}

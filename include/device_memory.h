@@ -1,9 +1,11 @@
 #pragma once
+#include <map>
+#include <string>
+#include <fstream>
 #include <cinttypes>
-#include <cmath>
 #include <vector>
 #include <memory>
-#include <algorithm>
+
 #include "types.h"
 
 
@@ -41,13 +43,14 @@ struct block
 	size_t size{};
 	size_t offset{};
 	bool free{};
-	int device_id{};
 	byte_* ptr = nullptr;
+	//void* ptr;
+	char block_type{};
 
 	bool operator ==(const block& block) const
 	{
 		return offset == block.offset && size == block.size &&
-			free == block.free && ptr == block.ptr && device_id == block.device_id;
+			free == block.free && ptr == block.ptr && block_type == block.block_type;
 	}
 };
 
@@ -66,16 +69,55 @@ protected:
 	byte_* m_ptr = nullptr;
 };
 
-class device_allocator
+class host_allocator
 {
 public:
-	device_allocator(size_t size);
+	host_allocator(size_t size);
 	block* allocate(size_t size);
 	void deallocate(block*) const;
 private:
 	size_t m_size;
 	block* allocate(size_t size, size_t alignment);
 	std::vector<std::shared_ptr<chunk>> m_chunks;
+};
+
+struct offline_chunk
+{
+	size_t offset;
+	size_t size;
+	std::string file_name;
+	bool free;
+};
+
+static _int io_{0};
+
+class off_device_cache
+{
+	//TODO make like device_allocator witch chunks to be written places
+public:
+	off_device_cache() : local_rank(io_)
+	{
+		io_++;
+		const auto file_name = "_" + std::to_string(local_rank) + ".dat";
+		file_store[file_name].open(file_name, std::ios::out | std::ios::binary);
+	}
+
+	void to(byte_* data, size_t size)
+	{
+		//TODO include with thread pool.
+	}
+
+	void from(offline_chunk* chunk, byte_* data, size_t size)
+	{
+		//TODO figure out how to manage storage elements
+		chunk->free = true;
+	}
+
+private:
+	std::map<std::string, std::fstream> file_store;
+	std::vector<offline_chunk> mChunks;
+	size_t local_rank;
+	size_t total_size{0};
 };
 
 
@@ -93,7 +135,7 @@ struct vk_block
 	int device_id{};
 	byte_* ptr = nullptr;
 
-	bool operator ==(const vk_block& blk) const
+	bool operator==(const vk_block& blk) const
 	{
 		return offset == blk.offset && size == blk.size &&
 			free == blk.free && ptr == blk.ptr && device_id == blk.device_id &&
@@ -124,26 +166,49 @@ private:
 class vk_device_allocator
 {
 public:
-	vk_device_allocator(const VkDevice& dev, size_t size = 4096);
-	vk_block* allocate(size_t size, size_t alignment, uint32_t memoryTypeIndex);
-	void deallocate(vk_block* blk) const;
+	vk_device_allocator(const VkDevice& dev, const VkPhysicalDeviceMemoryProperties& properties, size_t size = 4096);
+	vk_block* allocate(size_t size, bool make_buffer = true);
+	void deallocate(vk_block* blk);
 
-	vk_block* transfer_on_buffer(size_t size, size_t alignment, uint32_t memoryTypeBits);
-	vk_block* transfer_off_buffer(size_t size, size_t alignment, uint32_t memoryTypeBits);
+	VkBuffer get_buffer(vk_block* blk) { return buffer_map[blk]; }
+	VkImage get_image(vk_block* blk) { return image_map[blk]; }
 
-	void free_transfer_on_buffer(const vk_block*) const;
-	void free_transfer_off_buffer(const vk_block*) const;
 private:
 	size_t m_size;
 	size_t m_alignment{};
 	VkDevice m_device;
+	VkPhysicalDeviceMemoryProperties properties;
+
 	std::vector<std::shared_ptr<vk_chunk>> m_chunks;
 
-	std::unique_ptr<vk_chunk> m_on_transfer_chunk;
-	std::unique_ptr<vk_chunk> m_off_transfer_chunk;
-	VkBuffer m_transfer_on_buffer;
-	VkBuffer m_transfer_off_buffer;
+	/* TODO conversion of buffer to image and vice versa...
+	*	copy_block 2 buffer
+	*	copy_block 2 Image
+	*	Image 2 buffer
+	*	Buffer 2 Image
+	*/
+
+	std::map<vk_block*, VkBuffer> buffer_map;
+	std::map<vk_block*, VkImage> image_map;
 };
 
+#endif
+
+#ifdef CUDA
+
+struct cu_block
+{
+	size_t offset;
+	size_t size;
+	bool free;
+	int device_id;
+	void* ptr;
+
+	bool operator==(const cu_block& blk)
+	{
+		return offset == blk.offest && size == blk.size && free == blk.free && device_id == blk.device_id && ptr == blk.ptr;
+	}
+
+};
 
 #endif

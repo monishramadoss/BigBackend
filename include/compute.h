@@ -3,16 +3,17 @@
 #include <numeric>
 #include <memory>
 #include <functional>
-#include <algorithm>
 
 #include "device.h"
 #include "tensor.h"
+
+
 // TODO construct compute flow graph
 // TODO construct data flow graph from compute flow
 // TODO update compute flow graph with updated data flow with sync and async pipelines
 
 
-class compute_job: public std::enable_shared_from_this<compute_job>
+class compute_job : public std::enable_shared_from_this<compute_job>
 {
 private:
 	void split_kernel();
@@ -22,9 +23,8 @@ protected:
 	device dev = get_avalible_device();
 	int state{}; // -1 = error 0 = running 1 = transit 2 = complete
 public:
-	compute_job();
-	compute_job(device& dev);
-
+	compute_job(std::string);
+	
 	compute_job(compute_job&);
 	compute_job(const compute_job&);
 	compute_job(compute_job&&) noexcept;
@@ -39,12 +39,13 @@ public:
 
 	void set_input(tensor& input);
 	void set_output(tensor& output);
-	std::shared_ptr<tensor> get_input(size_t i);
-	std::shared_ptr<tensor> get_output(size_t i = 0);
-
+	
 	std::shared_ptr<compute_job> getptr() { return shared_from_this(); }
 	// ReSharper disable once CppSmartPointerVsMakeFunction
-	[[nodiscard]] static std::shared_ptr<compute_job> create() { return std::shared_ptr<compute_job>(new compute_job()); }
+	[[nodiscard]] static std::shared_ptr<compute_job> create(const std::string& compute_type)
+	{
+		return std::shared_ptr<compute_job>(new compute_job(compute_type));
+	}
 
 	virtual void run();
 	virtual ~compute_job();
@@ -67,9 +68,14 @@ static std::vector<uint32_t> compileSource(const std::string& source)
 	return {reinterpret_cast<uint32_t*>(buffer.data()), reinterpret_cast<uint32_t*>(buffer.data() + buffer.size())};
 }
 
-class vulkan_compute_object final : public compute_job
+
+void bindTensor(const VkDescriptorSet& descriptor_set, const VkBuffer& buffer, uint32_t binding);
+
+
+class vulkan_compute_object : public compute_job, public std::enable_shared_from_this<vulkan_compute_object>
 {
 private:
+	vk_device device;
 	VkShaderModule m_shader_module{};
 	VkPipelineLayout m_pipeline_layout{};
 	VkCommandBuffer m_command_buffer{};
@@ -80,7 +86,8 @@ private:
 
 
 public:
-	vulkan_compute_object();
+	vulkan_compute_object(int num_buffers, const std::string& compute_type="empty vulkan");
+
 	vulkan_compute_object(vulkan_compute_object&);
 	vulkan_compute_object(const vulkan_compute_object&);
 	vulkan_compute_object(vulkan_compute_object&&) noexcept;

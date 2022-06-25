@@ -7,27 +7,25 @@
 class views
 {
 public:
-	views() : t_size(0), d_size(0)
-	{
-	}
+	views();
 
 	explicit views(_int, dim_vec);
 	//views(views&) = default;
 	views(views&&) noexcept;
 	views(const views&);
 
-	views& operator=(const views&) = default;
+	views& operator=(const views&);
 
 	views select(int, _int) const;
 	//	views select(const std::vector<std::string>&) const;
 
-	[[nodiscard]] _int ndim() const { return mShape.size(); }
+	[[nodiscard]] _int ndim() const;
 	views reshape(std::vector<int>&) const;
 	views reshape(const std::vector<int>&) const;
-	[[nodiscard]] _int size_in_bytes() const { return t_size * d_size; }
-	[[nodiscard]] _int size(_int idx = 0) const { return mSize[idx]; }
-	[[nodiscard]] _int shape(size_t idx) const { return mShape[idx]; }
-	dim_vec& shape() { return mShape; }
+	[[nodiscard]] _int size_in_bytes() const;
+	[[nodiscard]] _int size(_int idx = 0) const;
+	[[nodiscard]] _int shape(size_t idx) const;
+	dim_vec& shape();
 
 	offset offset;
 

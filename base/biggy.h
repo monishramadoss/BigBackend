@@ -14,7 +14,4 @@
 #include "tensor.h"
 #include "compute.h"
 #include "naive_cpu/binary_ops.hpp"
-
-
-
 #include "vulkan_device/binary_ops.hpp"

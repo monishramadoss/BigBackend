@@ -1,6 +1,8 @@
 #include <stdexcept>
 #include "device_memory.h"
 
+#include "vulkan.hpp"
+
 
 //Chunk 
 
@@ -16,12 +18,18 @@ chunk::chunk(size_t size) : m_size(size)
 
 bool chunk::deallocate(const block* blk) const
 {
+	std::shared_ptr<block> src_blk = nullptr;
+
 	for (auto& _blk : m_blocks)
 	{
 		if (*_blk == *blk)
 		{
 			_blk->free = true;
 			return true;
+		}
+		if (_blk->free)
+		{
+			src_blk = _blk;
 		}
 	}
 	return false;
@@ -79,19 +87,19 @@ chunk::~chunk()
 
 
 //Device Allocator
-device_allocator::device_allocator(size_t size) : m_size(size)
+host_allocator::host_allocator(size_t size) : m_size(size)
 {
 	if (!isPowerOfTwo(size))
-		throw std::runtime_error("Size must be in allocation o fpower 2");
+		throw std::runtime_error("Size must be in allocation of power 2");
 	m_chunks.push_back(std::make_shared<chunk>(m_size));
 }
 
-block* device_allocator::allocate(size_t size)
+block* host_allocator::allocate(size_t size)
 {
 	return this->allocate(size, 1);
 }
 
-block* device_allocator::allocate(size_t size, size_t alignment)
+block* host_allocator::allocate(size_t size, size_t alignment)
 {
 	block* blk = nullptr;
 	for (const auto& chunk : m_chunks)
@@ -108,7 +116,7 @@ block* device_allocator::allocate(size_t size, size_t alignment)
 	return blk;
 }
 
-void device_allocator::deallocate(block* blk) const
+void host_allocator::deallocate(block* blk) const
 {
 	for (const auto& chunk : m_chunks)
 	{
@@ -216,7 +224,8 @@ vk_chunk::~vk_chunk()
 }
 
 
-vk_device_allocator::vk_device_allocator(const VkDevice& dev, size_t size) : m_size(size), m_device(dev)
+vk_device_allocator::vk_device_allocator(const VkDevice& dev, const VkPhysicalDeviceMemoryProperties& properties,
+                                         size_t size): m_size(size), m_device(dev), properties(properties)
 {
 	if (!isPowerOfTwo(size))
 		throw std::runtime_error("Size must be in allocation of power 2");
@@ -224,8 +233,41 @@ vk_device_allocator::vk_device_allocator(const VkDevice& dev, size_t size) : m_s
 }
 
 
-vk_block* vk_device_allocator::allocate(size_t size, size_t alignment, uint32_t memoryTypeIndex)
+vk_block* vk_device_allocator::allocate(size_t size, bool make_buffer)
 {
+	uint32_t memoryTypeIndex = 0;
+	size_t alignment = 0;
+	VkBuffer buffer{};
+//	VkImage image;
+	if (make_buffer)
+	{
+		VkBufferCreateInfo bufferCreateInfo{};
+		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufferCreateInfo.size = size;
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		/*
+		bufferCreateInfo.queueFamilyIndexCount = 1;
+		bufferCreateInfo.pQueueFamilyIndices = &queueFamilyIndex;
+		*/
+		/*requiredMemorySize += bufferMemoryRequirements.size;
+
+		if (bufferMemoryRequirements.size % bufferMemoryRequirements.alignment != 0) {
+			requiredMemorySize += bufferMemoryRequirements.alignment - bufferMemoryRequirements.size % bufferMemoryRequirements.alignment;
+		}*/
+
+
+		if (vkCreateBuffer(m_device, &bufferCreateInfo, nullptr, &buffer) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create buffer");
+		}
+		VkMemoryRequirements bufferMemoryRequirements;
+		vkGetBufferMemoryRequirements(m_device, buffer, &bufferMemoryRequirements);
+		alignment = bufferMemoryRequirements.alignment;
+		memoryTypeIndex = findMemoryTypeIndex(bufferMemoryRequirements.memoryTypeBits, properties, true);
+	}
+
+
 	vk_block* blk = nullptr;
 	for (const auto& chunk : m_chunks)
 	{
@@ -237,124 +279,29 @@ vk_block* vk_device_allocator::allocate(size_t size, size_t alignment, uint32_t 
 	m_chunks.push_back(std::make_shared<vk_chunk>(m_device, m_size, memoryTypeIndex));
 	if (!m_chunks.back()->allocate(size, alignment, &blk))
 		throw std::bad_alloc();
+
+	if (make_buffer)
+	{
+		buffer_map[blk] = buffer;
+	}
+
 	return blk;
 }
 
-void vk_device_allocator::deallocate(vk_block* blk) const
+void vk_device_allocator::deallocate(vk_block* blk)
 {
 	for (const auto& chunk : m_chunks)
 	{
 		if (chunk->deallocate(blk))
+		{
+			vkDestroyBuffer(m_device, buffer_map[blk], nullptr);
 			return;
+		}
 	}
 }
 
 
-
-
-
-void allocate_unique_chunk(const VkDevice& dev, std::unique_ptr<vk_chunk>& chunk, size_t size, size_t alignment, uint32_t memoryTypeBits, vk_block* blk, void* data)
-{
-	auto property_flag = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-//
-//VkBufferCreateInfo bufferInfo = {};
-//bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-//bufferInfo.size = m_staging_size;
-//bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-//bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-//bufferInfo.queueFamilyIndexCount = 1;
-//bufferInfo.pQueueFamilyIndices = &m_staging_queue_index.back();
-//
-//if (vkCreateBuffer(m_device, &bufferInfo, nullptr, &m_staging_buffer) != VK_SUCCESS)
-//throw std::runtime_error("failed to create buffer!");
-//
-//VkMemoryRequirements memoryRequirements;
-//vkGetBufferMemoryRequirements(m_device, m_staging_buffer, &memoryRequirements);
-//
-//VkMemoryAllocateInfo alloc_info{};
-//alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-//alloc_info.allocationSize = m_staging_size;
-//alloc_info.memoryTypeIndex = findMemoryTypeIndex(memoryRequirements.memoryTypeBits, m_memory_properties, false);
-//
-//if (vkAllocateMemory(m_device, &alloc_info, nullptr, &m_staging_memory) != VK_SUCCESS)
-//throw std::runtime_error("CANNOT ALLOCATE VULKAN OBJECT");
-//
-//void* data = nullptr;
-//vkBindBufferMemory(m_device, m_staging_buffer, m_staging_memory, 0);
-//vkMapMemory(m_device, m_staging_memory, 0, m_staging_size, 0, &data);
-
-
-	if (chunk == nullptr)
-		chunk = std::make_unique<vk_chunk>(dev, size, memoryTypeBits);
-	if (!chunk->allocate(size, alignment, &blk))
-		throw std::runtime_error("CANNOT ALLOCATE TRANSFER BUFFER");
-	vkMapMemory(dev, chunk->get_memory(), blk->offset, blk->size, 0, &data);
-	blk->ptr = static_cast<byte_*>(data);
-}
-
-vk_block* vk_device_allocator::transfer_on_buffer(size_t size, size_t alignment, uint32_t memoryTypeBits)
-{
-	vk_block* blk = nullptr;
-	void* data = nullptr;
-	allocate_unique_chunk(m_device, m_on_transfer_chunk, size, alignment, memoryTypeBits, blk, data);
-	return blk;
-}
-
-vk_block* vk_device_allocator::transfer_off_buffer(size_t size, size_t alignment, uint32_t memoryTypeBits)
-{
-	vk_block* blk = nullptr;
-	void* data = nullptr;
-	allocate_unique_chunk(m_device, m_off_transfer_chunk, size, alignment, memoryTypeBits, blk, data);
-	return blk;
-}
-
-
-
-void free_unique_chunk(const std::unique_ptr<vk_chunk>& buff, const vk_block* blk)
-{
-	if (!buff->deallocate(blk))
-		throw std::runtime_error("ISSUE CANNOT DEALLOCATE");
-}
-
-
-void vk_device_allocator::free_transfer_on_buffer(const vk_block* blk) const
-{
-	free_unique_chunk(m_off_transfer_chunk, blk);
-}
-
-void vk_device_allocator::free_transfer_off_buffer(const vk_block* blk) const
-{
-	free_unique_chunk(m_off_transfer_chunk, blk);
-}
-
-
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 //struct Chunk

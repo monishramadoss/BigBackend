@@ -4,26 +4,30 @@
 #include "biggy.h"
 
 
-int main(){
-	
+int main()
+{
 
-	auto st1 = vk_device_storage(32);
-	auto st2 = vk_device_storage(32);
-
-
-	//tensor tmp = arange(0, 8);
-	//tmp = tmp.reshape({ 2, 2, 2 });
-	//tensor tmp2 = arange(0, 8);
-	//tensor tmp3 = tmp;
-	//tensor tmp4 = tmp2.reshape({ 2,2,2 });
-	//tensor tmp5;
-	//auto t1 = tmp3.get_parent();
-	//auto t2 = tmp.get_parent();
-	//auto t3 = t2->get_parent();
-	//tmp5 = tmp3 * tmp4 + tmp3;
-	//tmp5.dtype;
+	tensor tmp = arange(0, 8);
+	auto data_ptr = reinterpret_cast<float*>(tmp.get_data());
+	std::cout << data_ptr[0] << " " << data_ptr[1] << " " << data_ptr[2] << std::endl;
+	tensor tmp3 = tmp;
+	auto data_ptr_2 = reinterpret_cast<float*>(tmp3.get_data());
+	data_ptr[1] = 2.0;
+	std::cout << data_ptr_2[0] << " " << data_ptr_2[1] <<  " " << data_ptr_2[2] << std::endl;
 
 
+	tmp = tmp.reshape({ 2, 2, 2 });
+	tensor tmp2 = arange(0, 8);
+	tensor tmp4 = tmp2.reshape({ 2,2,2 });
+	tensor tmp5;
 
-	return 0;
+	auto layer1 = vk::mul();
+	auto layer2 = vk::add();
+
+
+	tmp5 = tmp * tmp4 + tmp;
+	std::cout << &tmp5 << std::endl;
+
+
+		return 0;
 }

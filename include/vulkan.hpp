@@ -261,9 +261,7 @@ inline void pickPhysicalDevice(const VkInstance& instance, VkPhysicalDevice& phy
 	}
 
 	if (physicalDevice == VK_NULL_HANDLE)
-	{
 		throw std::runtime_error("failed to find a suitable GPU!");
-	}
 
 	VkPhysicalDeviceProperties gpuProperties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &gpuProperties);
@@ -295,9 +293,7 @@ inline void createLogicalDeviceAndQueue(const VkPhysicalDevice& physicalDevice,
 	}
 
 	if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS)
-	{
 		throw std::runtime_error("failed to create logical device!");
-	}
 
 	vkGetDeviceQueue(device, queueFamilyIndex, 0, &queue);
 }
@@ -325,9 +321,7 @@ inline void createBuffer(const VkDevice& device, uint32_t queueFamilyIndex, VkBu
 	bufferCreateInfo.pQueueFamilyIndices = &queueFamilyIndex;
 
 	if (vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer) != VK_SUCCESS)
-	{
 		throw std::runtime_error("failed to create buffer");
-	}
 }
 
 
@@ -339,9 +333,7 @@ inline uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFil
 	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 	{
 		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-		{
 			return i;
-		}
 	}
 
 	throw std::runtime_error("failed to find suitable memory type!");
@@ -414,9 +406,7 @@ inline void allocateAndBindBuffers(const VkDevice& device, const VkPhysicalDevic
 	allocateInfo.memoryTypeIndex = memoryTypeIndex;
 
 	if (vkAllocateMemory(device, &allocateInfo, nullptr, &memory) != VK_SUCCESS)
-	{
 		throw std::runtime_error("failed to allocate buffer memory");
-	}
 
 	VkDeviceSize offset = 0;
 
@@ -428,15 +418,12 @@ inline void allocateAndBindBuffers(const VkDevice& device, const VkPhysicalDevic
 		vkGetBufferMemoryRequirements(device, *buff, &bufferMemoryRequirements);
 
 		if (vkBindBufferMemory(device, *buff, memory, offset) != VK_SUCCESS)
-		{
 			throw std::runtime_error("failed to bind buffer memory");
-		}
 
 		offset += bufferMemoryRequirements.size;
 		if (bufferMemoryRequirements.size % bufferMemoryRequirements.alignment != 0)
-		{
-			offset += bufferMemoryRequirements.alignment - bufferMemoryRequirements.size % bufferMemoryRequirements.alignment;
-		}
+			offset += bufferMemoryRequirements.alignment - bufferMemoryRequirements.size % bufferMemoryRequirements.
+				alignment;
 	}
 }
 
@@ -461,9 +448,7 @@ inline void createPipelineLayout(const VkDevice& device, uint32_t bindingsCount,
 	setLayoutCreateInfo.pBindings = layoutBindings.data();
 
 	if (vkCreateDescriptorSetLayout(device, &setLayoutCreateInfo, nullptr, &setLayout) != VK_SUCCESS)
-	{
 		throw std::runtime_error("failed to create descriptor set layout!");
-	}
 
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -479,9 +464,7 @@ inline void createPipelineLayout(const VkDevice& device, uint32_t bindingsCount,
 	pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
 	if (vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout))
-	{
 		throw std::runtime_error("failed to create pipeline layout");
-	}
 }
 
 inline std::vector<char> readFile(const std::string& filename)
@@ -550,9 +533,7 @@ inline void allocateDescriptorSet(const VkDevice& device, std::vector<VkBuffer*>
 	descriptorPoolCreateInfo.poolSizeCount = 1;
 	descriptorPoolCreateInfo.pPoolSizes = &poolSize;
 	if (vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, nullptr, &descriptorPool) != VK_SUCCESS)
-	{
 		throw std::runtime_error("failed to create descriptor pool");
-	}
 
 	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
 	descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -561,9 +542,7 @@ inline void allocateDescriptorSet(const VkDevice& device, std::vector<VkBuffer*>
 	descriptorSetAllocateInfo.pSetLayouts = &setLayout;
 
 	if (vkAllocateDescriptorSets(device, &descriptorSetAllocateInfo, &descriptorSet) != VK_SUCCESS)
-	{
 		throw std::runtime_error("failed to allocate descriptor sets");
-	}
 
 
 	std::vector<VkWriteDescriptorSet> descriptorSetWrites(buffers.size());
@@ -608,9 +587,7 @@ inline void allocateDescriptorSet(const VkDevice& device, const std::vector<std:
 	size_t count = 0;
 
 	for (const std::vector<VkBuffer*>& buffer : buffers)
-	{
 		count += buffer.size();
-	}
 
 	poolSize.descriptorCount = static_cast<uint32_t>(count);
 
