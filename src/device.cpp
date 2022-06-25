@@ -1,21 +1,6 @@
 #include "device.h"
 
-
-#ifdef __unix__
-#include <unist.h>
-_int getTotalSystemMemory()
-{
-	long pages = sysconf(_SC_PHYS_PAGES);
-	long page_size = sysconf(_SC_PAGE_SIZE);
-	return pages * page_size;
-}
-
-_int getTotalDiskSpace()
-{
-	return getTotalSystemMemory();
-}
-
-#elif defined(_WIN32) || defined(WIN32)
+#if defined(_WIN32) || defined(WIN32)
 #include <Windows.h>
 
 _int getTotalSystemMemory()
@@ -24,6 +9,18 @@ _int getTotalSystemMemory()
 	status.dwLength = sizeof(status);
 	GlobalMemoryStatusEx(&status);
 	return status.ullTotalPhys;
+}
+
+_int getTotalDiskSpace()
+{
+	return getTotalSystemMemory();
+}
+#else 
+#include <unistd.h>
+_int getTotalSystemMemory(){
+	long pages = sysconf(_SC_PHYS_PAGES);
+	long page_size = sysconf(_SC_PAGE_SIZE);
+	return pages * page_size;
 }
 
 _int getTotalDiskSpace()
