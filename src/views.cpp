@@ -44,19 +44,19 @@ dim_vec& views::shape()
 	return mShape;
 }
 
-views::views(views&& v) noexcept : offset(std::move(v.offset)), t_size(v.t_size), d_size(v.d_size),
+views::views(views&& v) noexcept : _offset(std::move(v._offset)), t_size(v.t_size), d_size(v.d_size),
                                    mShape(std::move(v.mShape)), mStride(std::move(v.mStride)), mSize(std::move(v.mSize))
 {
 }
 
 views::views(const views& v) : t_size(v.t_size), d_size(v.d_size)
 {
-	offset.resize(v.offset.size());
+	_offset.resize(v._offset.size());
 	mShape.resize(v.ndim());
 	mStride.resize(v.ndim());
 	mSize.resize(v.ndim() + 1);
 
-	std::copy(v.offset.begin(), v.offset.end(), offset.begin());
+	std::copy(v._offset.begin(), v._offset.end(), _offset.begin());
 	std::copy(v.mShape.begin(), v.mShape.end(), mShape.begin());
 	std::copy(v.mStride.begin(), v.mStride.end(), mStride.begin());
 	std::copy(v.mSize.begin(), v.mSize.end(), mSize.begin());
@@ -120,6 +120,6 @@ views views::select(int axis, _int idx) const
 		dst_shape.push_back(1);
 
 	views view(t_size, dst_shape);
-	axis_idx(axis, idx, t_size, mShape, mStride, view.offset);
+	axis_idx(axis, idx, t_size, mShape, mStride, view._offset);
 	return view;
 }

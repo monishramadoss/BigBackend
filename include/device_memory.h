@@ -1,4 +1,8 @@
 #pragma once
+
+#include "types.h"
+
+
 #include <map>
 #include <string>
 #include <fstream>
@@ -6,7 +10,6 @@
 #include <vector>
 #include <memory>
 
-#include "types.h"
 
 
 inline bool isPowerOfTwo(size_t size)

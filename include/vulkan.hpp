@@ -1,6 +1,7 @@
 #pragma once
+
 #include <vector>
-#include <string>
+#include <cstring>
 #include <iostream>
 #include <fstream>
 
@@ -13,7 +14,7 @@
 #ifdef NDEBUG
 constexpr bool enableValidationLayers = false;
 #else
-constexpr bool enableValidationLayers = true;
+constexpr bool enableValidationLayers = false; //true;
 #endif
 
 
@@ -112,9 +113,7 @@ inline std::vector<const char*> getRequiredExtensions()
 	std::vector<const char*> extensions;
 
 	if (enableValidationLayers)
-	{
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-	}
 
 	return extensions;
 }
@@ -142,10 +141,10 @@ inline void createInstance(VkInstance& instance)
 	VkApplicationInfo appInfo{};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = "BigBackend";
-	appInfo.engineVersion = VK_API_VERSION_1_2;
-	appInfo.pEngineName = "No Engine";
-	appInfo.engineVersion = VK_API_VERSION_1_2;
-	appInfo.apiVersion = VK_API_VERSION_1_2;
+	appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
+	appInfo.pEngineName = "backend_engine";
+	appInfo.engineVersion = VK_MAKE_VERSION(1, 0 , 0);
+	appInfo.apiVersion = VK_API_VERSION_1_1;
 
 	VkInstanceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -160,7 +159,6 @@ inline void createInstance(VkInstance& instance)
 	{
 		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 		createInfo.ppEnabledLayerNames = validationLayers.data();
-
 		populateDebugMessengerCreateInfo(debugCreateInfo);
 		createInfo.pNext = &debugCreateInfo;
 	}
@@ -169,10 +167,11 @@ inline void createInstance(VkInstance& instance)
 		createInfo.enabledLayerCount = 0;
 		createInfo.pNext = nullptr;
 	}
-
+	
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create instance!");
+		return;
+//		throw std::runtime_error("failed to create instance!");
 	}
 }
 

@@ -1,9 +1,10 @@
 #include "storage_manager.h"
 
+
 storage_manager::storage_manager() : host_memory_allocator(4096), host(get_avalible_device)
 {
 #ifdef VULKAN
-	vkdev = vk_devices; // NOLINT(cppcoreguidelines-prefer-member-initializer)
+	std::copy(vk_devices.begin(), vk_devices.end(), vkdev.begin()); // NOLINT(cppcoreguidelines-prefer-member-initializer)
 	for (auto& gpu : vkdev)
 		vk_memory_allocators.emplace_back(gpu.get_device(), gpu.get_mem_properties(), 16384);
 #endif

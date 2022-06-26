@@ -1,5 +1,7 @@
 #pragma once
-#include<vector>
+#include <vector>
+#include <cstddef>
+#include <cstdio>
 
 enum class Format
 {
@@ -41,9 +43,9 @@ inline char element_size(Format fmt)
 	return 0;
 }
 
-using _int = size_t;
-using byte_ = char;
+typedef size_t _int;
+typedef char  byte_;
 
-using offset = std::vector<std::pair<_int, _int>>;
-using dim_vec = std::vector<_int>;
-using data_buffer = std::vector<byte_>;
+typedef std::vector<std::pair<size_t, size_t>> offset;
+typedef std::vector<_int> dim_vec;
+typedef std::vector<byte_> data_buffer;

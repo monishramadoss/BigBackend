@@ -1,11 +1,13 @@
 #pragma once
+
+#include "device.h"
+#include "tensor.h"
+
+
 #include <vector>
 #include <numeric>
 #include <memory>
 #include <functional>
-
-#include "device.h"
-#include "tensor.h"
 
 
 // TODO construct compute flow graph

@@ -1,15 +1,17 @@
 #pragma once
+
+#include "compute.h"
+#include "compute_manager.h"
+#include "init.h"
+#include "types.h"
+#include "tensor.h"
+
+
 #include <chrono>
 #include <stdexcept>
 #include <utility>
 
 
-#include "compute.h"
-#include "compute_manager.h"
-
-#include "init.h"
-#include "types.h"
-#include "tensor.h"
 
 
 //CLASS CODE
@@ -27,7 +29,7 @@ class add : public binary_op
 {
 public:
 	add() : binary_op("naive_cpu_add") {}
-	static void kernel(block* x, block* w, block* y);
+	void kernel(block* x, block* w, block* y);
 };
 
 
@@ -35,7 +37,7 @@ class sub : public binary_op
 {
 public:
 	sub() : binary_op("naive_cpu_sub") {}
-	static void kernel(block* x, block* w, block* y);
+	void kernel(block* x, block* w, block* y);
 };
 
 
@@ -43,7 +45,7 @@ class mul : public binary_op
 {
 public:
 	mul() : binary_op("naive_cpu_mul") {}
-	static void kernel(block* x, block* w, block* y);
+	void kernel(block* x, block* w, block* y);
 };
 
 
@@ -51,7 +53,7 @@ class true_div : public binary_op
 {
 public:
 	true_div() : binary_op("naive_cpu_div") {}
-	static void kernel(block* x, block* w, block* y);
+	void kernel(block* x, block* w, block* y);
 };
 
 

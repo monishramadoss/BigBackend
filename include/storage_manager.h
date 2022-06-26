@@ -1,9 +1,12 @@
 #pragma once
-#include <map>
-#include <vector>
+
+ 
 #include "device.h"
 #include "device_memory.h"
 
+#include <map>
+#include <vector>
+#include <memory.h>
 
 //TODO TRIGGER when to fire off to device data
 

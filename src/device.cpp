@@ -194,8 +194,10 @@ VkPhysicalDeviceMemoryProperties vk_device::get_mem_properties() const
 
 void emplace_vulkan_devices(std::vector<vk_device>& devices)
 {
-	VkInstance vk_instance;
+	VkInstance vk_instance = VK_NULL_HANDLE;
 	createInstance(vk_instance);
+	if(vk_instance == nullptr)
+		return;
 
 	uint32_t deviceCount = 0;
 	if (vkEnumeratePhysicalDevices(vk_instance, &deviceCount, nullptr))
@@ -213,6 +215,10 @@ vk_device& get_vk_device()
 {
 	if (vk_devices.empty())
 		emplace_vulkan_devices(vk_devices);
+	
+	if (vk_devices.empty())
+		return;
+
 	return vk_devices[0];
 }
 

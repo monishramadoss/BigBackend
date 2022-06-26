@@ -1,5 +1,7 @@
-#include <iostream>
 #include "init.h"
+
+#include <cmath>
+#include <iostream>
 
 
 tensor filln(std::vector<_int>& shape, float n)
@@ -38,8 +40,9 @@ tensor arange(int min, int max, int step)
 	if (max < min)
 		std::cerr << "ERROR IN ARANGE" << std::endl;
 	auto* data = data_arange<float>(min, max, step);
-	const auto data_size = static_cast<_int>(std::ceil(static_cast<double>(max - min) / step));
-	return tensor(data, {static_cast<_int>(data_size)});
+	double _tmp = (max - min) / step;
+	_int data_size = static_cast<_int>(ceil(_tmp));
+	return tensor(data, {data_size});
 }
 
 tensor arange(int max)

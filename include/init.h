@@ -1,7 +1,10 @@
 #pragma once
+
+#include <cmath>
 #include <functional>
 #include <numeric>
 #include <vector>
+
 
 #include "types.h"
 #include "tensor.h"
@@ -35,7 +38,8 @@ byte_* data_ones(dim_vec& shape)
 template <typename T>
 byte_* data_arange(int64_t min, int64_t max, int64_t step = 1)
 {
-	const auto data_size = static_cast<_int>(ceil((max - min) / step));
+	double _tmp = (max - min) / step;
+	const auto data_size = static_cast<_int>( ceil(_tmp) );
 
 	T* dst = new T[data_size];
 	for (int64_t i = min; i < max; i += step)

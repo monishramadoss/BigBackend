@@ -27,7 +27,7 @@ public:
 	[[nodiscard]] _int shape(size_t idx) const;
 	dim_vec& shape();
 
-	offset offset;
+	offset _offset;
 
 private:
 	_int t_size;

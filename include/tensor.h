@@ -1,9 +1,12 @@
 #pragma once
-#include <vector>
-#include <memory>
+
 #include "types.h"
 #include "storage.h"
 #include "views.h"
+
+
+#include <vector>
+#include <memory>
 
 class tensor : public std::enable_shared_from_this<tensor>
 {

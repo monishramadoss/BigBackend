@@ -1,6 +1,7 @@
 #ifndef  T_UTILS
 #define T_UTILS
 
+#include "types.h"
 
 #include <vector>
 #include <numeric>
@@ -108,7 +109,7 @@ inline dim_vec broadcast_contribution(dim_vec& s1, dim_vec& s2, dim_vec& differe
 inline dim_vec broadcast(dim_vec& s1, dim_vec& s2)
 {
 	/*
-	 *	If the arrays don’t have the same rank then prepend the shape of the lower rank array with 1s until both shapes have the same length.
+	 *	If the arrays donï¿½t have the same rank then prepend the shape of the lower rank array with 1s until both shapes have the same length.
 	 *	The two arrays are compatible in a dimension if they have the same size in the dimension or if one of the arrays has size 1 in that dimension.
 	 *	The arrays can be broadcast together iff they are compatible with all dimensions.
      *	After broadcasting, each array behaves as if it had shape equal to the element-wise maximum of shapes of the two input arrays.

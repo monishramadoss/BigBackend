@@ -47,7 +47,7 @@ tensor::tensor(tensor&& t) noexcept = default;
 tensor::tensor(const tensor& t) : local_tensor_id(t.local_tensor_id), dtype(t.dtype),
                                   children(t.children), view(t.view), size_in_bytes(t.size_in_bytes)
 {
-	std::cout << "Tensor Copy Operator" << std::endl;
+	// std::cout << "Tensor Copy Operator" << std::endl;
 	if (parent == nullptr)
 		parent = t.parent;
 	data_ptr = t.data_ptr;
@@ -55,7 +55,7 @@ tensor::tensor(const tensor& t) : local_tensor_id(t.local_tensor_id), dtype(t.dt
 
 tensor& tensor::operator=(const tensor& t)
 {
-	std::cout << "Tensor Assign Operator" << std::endl;
+	// std::cout << "Tensor Assign Operator" << std::endl;
 	if (this == &t && local_tensor_id == t.local_tensor_id)
 		return *this;
 
@@ -72,7 +72,7 @@ tensor& tensor::operator=(const tensor& t)
 
 tensor& tensor::operator=(tensor&& t) noexcept
 {
-	std::cout << "Tensor Assigned Move Operator" << std::endl;
+	// std::cout << "Tensor Assigned Move Operator" << std::endl;
 	if (this == &t)
 		return *this;
 
@@ -98,7 +98,7 @@ std::pair<_int, _int> tensor::get_offset() const
 {
 	std::pair<_int, _int> o;
 
-	for (const auto& off : view.offset)
+	for (const auto& off : view._offset)
 	{
 		o.first += off.first;
 		o.second = off.second;
@@ -106,7 +106,7 @@ std::pair<_int, _int> tensor::get_offset() const
 
 	for (std::shared_ptr<tensor> p = parent; p != nullptr; p = p->parent)
 	{
-		for (const auto& [fst, snd] : p->view.offset)
+		for (const auto& [fst, snd] : p->view._offset)
 			o.first += fst;
 	}
 	return o;
@@ -134,14 +134,14 @@ byte_* tensor::get_data()
 	if (data_ptr != nullptr)
 		return *data_ptr;
 
-	for (const auto& [fst, snd] : view.offset)
+	for (const auto& [fst, snd] : view._offset)
 		offset += fst;
 
 	for (auto& p = parent; p != nullptr; p = p->parent)
 	{
 		if (src == nullptr)
 		{
-			for (const auto& [fst, snd] : p->view.offset)
+			for (const auto& [fst, snd] : p->view._offset)
 				offset += fst;
 			if (p->data_ptr != nullptr)
 			{
@@ -177,7 +177,7 @@ void tensor::set_data(const byte_* src, _int offset) const
 	std::shared_ptr<tensor> p = nullptr;
 	for (p = parent; p != nullptr; p = p->parent);
 	if (p != nullptr)
-		p->set_data(src, view.offset[0].first);
+		p->set_data(src, view._offset[0].first);
 }
 
 void tensor::set_data(tensor& t) const

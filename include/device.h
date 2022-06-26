@@ -2,14 +2,17 @@
 
 #define VULKAN
 
+
+#include "types.h"
+#include "thread_pool.h"
+#include "device_memory.h"
+
+
 #include <stdexcept>
 #include <vector>
 #include <memory>
 #include <functional>
 
-#include "types.h"
-#include "thread_pool.h"
-#include "device_memory.h"
 
 class tensor;
 class compute_job;
@@ -71,11 +74,11 @@ public:
 
 
 private:
-	VkInstance m_instance;
-	VkPhysicalDevice m_physical_device;
-	VkPhysicalDeviceProperties m_device_properties{};
-	VkPhysicalDeviceMemoryProperties m_memory_properties{};
-	VkDebugUtilsMessengerEXT m_debug_messenger{};
+	VkInstance m_instance {};
+	VkPhysicalDevice m_physical_device {};
+	VkPhysicalDeviceProperties m_device_properties {};
+	VkPhysicalDeviceMemoryProperties m_memory_properties {};
+	VkDebugUtilsMessengerEXT m_debug_messenger {};
 
 	std::vector<uint32_t> m_compute_queue_index;
 	std::vector<uint32_t> m_staging_queue_index;

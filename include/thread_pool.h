@@ -1,11 +1,14 @@
 #pragma once
+
+#include "types.h"
+
+
 #include <thread>
 #include <mutex>
 #include <queue>
 #include <functional>
 #include <map>
 #include <vector>
-#include "types.h"
 
 class Thread
 {
