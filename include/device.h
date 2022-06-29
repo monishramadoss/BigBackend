@@ -7,7 +7,7 @@
 #include "thread_pool.h"
 #include "device_memory.h"
 
-
+#include <mutex>
 #include <stdexcept>
 #include <vector>
 #include <memory>
@@ -56,6 +56,7 @@ protected:
 static std::vector<device> devices{};
 
 #ifdef VULKAN
+
 #include <vulkan/vulkan.h>
 
 class vk_device : public device
@@ -64,33 +65,40 @@ public:
 	vk_device(const VkInstance& instance, const VkPhysicalDevice& pDevice);
 	vk_device(const vk_device&);
 	vk_device(vk_device&&) noexcept;
-	vk_device& operator=(vk_device&);
+	vk_device& operator=(const vk_device&);
 	~vk_device() override;
 
-	[[nodiscard]] VkDevice get_device() const;
+	[[nodiscard]] VkDevice& get_device();
 	[[nodiscard]] VkPhysicalDeviceMemoryProperties get_mem_properties() const;
 	int m_max_work_group_size[3];
 	int m_max_work_groups[3];
 
+	VkCommandPool& get_cmd_pool() { return m_cmd_pool; }
+	VkQueue& get_queue() { return m_cmd_queue; }
+
+	void lock() { device_lock.lock(); }
+	void unlock() { device_lock.unlock(); }
 
 private:
-	VkInstance m_instance {};
-	VkPhysicalDevice m_physical_device {};
-	VkPhysicalDeviceProperties m_device_properties {};
-	VkPhysicalDeviceMemoryProperties m_memory_properties {};
-	VkDebugUtilsMessengerEXT m_debug_messenger {};
+	VkInstance m_instance{};
+	VkPhysicalDevice m_physical_device{};
+	VkPhysicalDeviceProperties m_device_properties{};
+	VkPhysicalDeviceMemoryProperties m_memory_properties{};
+	VkDebugUtilsMessengerEXT m_debug_messenger{};
 
 	std::vector<uint32_t> m_compute_queue_index;
 	std::vector<uint32_t> m_staging_queue_index;
 
 	VkDevice m_device{};
-
 	VkQueue m_cmd_queue{};
 	VkCommandPool m_cmd_pool{};
+	VkCommandPool m_transfer_pool{};
 
 	_int m_max_device_memory_size{0};
 	VkQueue m_staging_queue{};
 	VkCommandBuffer m_transfer_cmd_buffer;
+
+	std::mutex device_lock;
 };
 
 static std::vector<vk_device> vk_devices{};

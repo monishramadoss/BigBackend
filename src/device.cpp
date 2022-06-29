@@ -16,7 +16,7 @@ _int getTotalDiskSpace()
 	return getTotalSystemMemory();
 }
 
-#else 
+#else
 #include <unistd.h>
 _int getTotalSystemMemory(){
 	long pages = sysconf(_SC_PHYS_PAGES);
@@ -79,11 +79,12 @@ bool device::is_avalible(int d_type) const
 
 constexpr float queuePriority = 1.0f;
 #include <iostream>
+#include <vulkan/vulkan.h>
 #include "vulkan.hpp"
 
 inline uint32_t get_heap_index(const VkMemoryPropertyFlags& flags, const VkPhysicalDeviceMemoryProperties& properties)
 {
-	for (auto i = 0; i < properties.memoryTypeCount; ++i)
+	for (uint32_t i = 0; i < properties.memoryTypeCount; ++i)
 	{
 		if ((flags & properties.memoryTypes[i].propertyFlags) == flags)
 			return properties.memoryTypes[i].heapIndex;
@@ -100,7 +101,7 @@ inline uint32_t get_heap_index(const VkMemoryPropertyFlags& flags, const VkPhysi
  */
 
 vk_device::vk_device(const VkInstance& instance, const VkPhysicalDevice& pDevice) :
-	device(), m_instance(instance), m_physical_device(pDevice)
+	device(), m_instance(instance), m_physical_device(pDevice), m_transfer_cmd_buffer(nullptr)
 {
 	setupDebugMessenger(m_instance, m_debug_messenger);
 
@@ -129,7 +130,7 @@ vk_device::vk_device(const VkInstance& instance, const VkPhysicalDevice& pDevice
 	vkGetPhysicalDeviceQueueFamilyProperties(pDevice, &queueFamilyCount, queueFamilies.data());
 
 	uint32_t i = 0;
-	for (auto& queueFamily : queueFamilies)
+	for (const auto& queueFamily : queueFamilies)
 	{
 		if (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)
 			m_compute_queue_index.push_back(i);
@@ -144,45 +145,143 @@ vk_device::vk_device(const VkInstance& instance, const VkPhysicalDevice& pDevice
 	queueCreateInfo.queueFamilyIndex = m_compute_queue_index.back();
 	queueCreateInfo.pQueuePriorities = &queuePriority;
 
+
+	// any specific device features needed
+	VkPhysicalDeviceFeatures deviceFeatures = {};
+
 	VkDeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+	deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
 	deviceCreateInfo.queueCreateInfoCount = 1;
 	deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
-	if (enableValidationLayers)
-	{
-		deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
-	}
-	else
-		deviceCreateInfo.enabledLayerCount = 0;
-
-	if (vkCreateDevice(pDevice, &deviceCreateInfo, nullptr, &m_device))
-		throw std::runtime_error("failed to create logical device!");
+	if (vkCreateDevice(pDevice, &deviceCreateInfo, nullptr, &m_device) != VK_SUCCESS)
+		throw std::runtime_error("failed to create logical device");
 
 	std::cout << "Using device: " << m_device_properties.deviceName << " Maximum Memory: " << m_max_device_memory_size
 		<< '\n';
 
 	vkGetDeviceQueue(m_device, m_compute_queue_index.back(), 0, &m_cmd_queue);
 
-	/*VkCommandBufferAllocateInfo buffer_allocate_info;
+	VkCommandPoolCreateInfo commandPoolCreateInfo = {};
+	commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	commandPoolCreateInfo.queueFamilyIndex = m_compute_queue_index.back();
+
+	if (vkCreateCommandPool(m_device, &commandPoolCreateInfo, nullptr, &m_cmd_pool) != VK_SUCCESS)
+		throw std::runtime_error("failed to create command pool");
+
+	VkCommandPoolCreateInfo commandPoolCreateInfo_2 = {};
+	commandPoolCreateInfo_2.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	commandPoolCreateInfo_2.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	commandPoolCreateInfo_2.queueFamilyIndex = m_staging_queue_index.back();
+
+	if (vkCreateCommandPool(m_device, &commandPoolCreateInfo_2, nullptr, &m_transfer_pool) != VK_SUCCESS)
+		throw std::runtime_error("failed to create command pool");
+
+	VkCommandBufferAllocateInfo buffer_allocate_info = {};
 	buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	buffer_allocate_info.commandBufferCount = 1;
-	buffer_allocate_info.commandPool = m_cmd_pool;
+	buffer_allocate_info.commandPool = m_transfer_pool;
 	buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-	vkAllocateCommandBuffers(m_device, &buffer_allocate_info, &m_transfer_cmd_buffer);*/
+	buffer_allocate_info.commandBufferCount = 1;
+
+	if (vkAllocateCommandBuffers(m_device, &buffer_allocate_info, &m_transfer_cmd_buffer) != VK_SUCCESS)
+		throw std::runtime_error("failed to create transfer buffer");
 }
 
-vk_device::vk_device(const vk_device&) = default;
 
-vk_device::vk_device(vk_device&&) noexcept = default;
+vk_device::vk_device(const vk_device& vkd)
+{
+	for (char i = 0; i < 3; ++i)
+	{
+		m_max_work_groups[i] = vkd.m_max_work_groups[i];
+		m_max_work_group_size[i] = vkd.m_max_work_group_size[i];
+	}
+
+	m_instance = vkd.m_instance;
+	m_physical_device = vkd.m_physical_device;
+	m_device_properties = vkd.m_device_properties;
+	m_memory_properties = vkd.m_memory_properties;
+	m_debug_messenger = vkd.m_debug_messenger;
+
+	m_compute_queue_index = vkd.m_compute_queue_index;
+	m_staging_queue_index = vkd.m_staging_queue_index;
+
+	m_device = vkd.m_device;
+	m_cmd_queue = vkd.m_cmd_queue;
+	m_cmd_pool = vkd.m_cmd_pool;
+	m_transfer_pool = vkd.m_transfer_pool;
+
+	m_max_device_memory_size = vkd.m_max_device_memory_size;
+
+	m_staging_queue = vkd.m_staging_queue;
+	m_transfer_cmd_buffer = vkd.m_transfer_cmd_buffer;
+}
+
+
+vk_device::vk_device(vk_device&& vkd) noexcept
+{
+	for (char i = 0; i < 3; ++i)
+	{
+		m_max_work_groups[i] = vkd.m_max_work_groups[i];
+		m_max_work_group_size[i] = vkd.m_max_work_group_size[i];
+	}
+
+	m_instance = vkd.m_instance;
+	m_physical_device = vkd.m_physical_device;
+	m_device_properties = vkd.m_device_properties;
+	m_memory_properties = vkd.m_memory_properties;
+	m_debug_messenger = vkd.m_debug_messenger;
+
+	m_compute_queue_index = vkd.m_compute_queue_index;
+	m_staging_queue_index = vkd.m_staging_queue_index;
+
+	m_device = vkd.m_device;
+	m_cmd_queue = vkd.m_cmd_queue;
+	m_cmd_pool = vkd.m_cmd_pool;
+	m_transfer_pool = vkd.m_transfer_pool;
+
+	m_max_device_memory_size = vkd.m_max_device_memory_size;
+
+	m_staging_queue = vkd.m_staging_queue;
+	m_transfer_cmd_buffer = vkd.m_transfer_cmd_buffer;
+};
 
 vk_device::~vk_device() = default;
 
-vk_device& vk_device::operator=(vk_device&) = default;
+vk_device& vk_device::operator=(const vk_device& vkd)
+{
+	for (char i = 0; i < 3; ++i)
+	{
+		m_max_work_groups[i] = vkd.m_max_work_groups[i];
+		m_max_work_group_size[i] = vkd.m_max_work_group_size[i];
+	}
+
+	m_instance = vkd.m_instance;
+	m_physical_device = vkd.m_physical_device;
+	m_device_properties = vkd.m_device_properties;
+	m_memory_properties = vkd.m_memory_properties;
+	m_debug_messenger = vkd.m_debug_messenger;
+
+	m_compute_queue_index = vkd.m_compute_queue_index;
+	m_staging_queue_index = vkd.m_staging_queue_index;
+
+	m_device = vkd.m_device;
+	m_cmd_queue = vkd.m_cmd_queue;
+	m_cmd_pool = vkd.m_cmd_pool;
+	m_transfer_pool = vkd.m_transfer_pool;
+
+	m_max_device_memory_size = vkd.m_max_device_memory_size;
+
+	m_staging_queue = vkd.m_staging_queue;
+	m_transfer_cmd_buffer = vkd.m_transfer_cmd_buffer;
+	return *this;
+}
 
 
-VkDevice vk_device::get_device() const
+VkDevice& vk_device::get_device()
 {
 	return m_device;
 }
@@ -196,7 +295,7 @@ void emplace_vulkan_devices(std::vector<vk_device>& devices)
 {
 	VkInstance vk_instance = VK_NULL_HANDLE;
 	createInstance(vk_instance);
-	if(vk_instance == nullptr)
+	if (vk_instance == nullptr)
 		return;
 
 	uint32_t deviceCount = 0;
@@ -215,9 +314,9 @@ vk_device& get_vk_device()
 {
 	if (vk_devices.empty())
 		emplace_vulkan_devices(vk_devices);
-	
-	if (vk_devices.empty())
-		return;
+
+	// if (vk_devices.empty())
+	//	return;
 
 	return vk_devices[0];
 }

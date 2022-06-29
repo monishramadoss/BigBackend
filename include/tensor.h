@@ -43,6 +43,7 @@ public:
 	size_t local_tensor_id{};
 	Format dtype = Format::kFormatInvalid;
 
+	[[nodiscard]] _int size(_int i=0) const { return view.size(i); }
 	[[nodiscard]] _int data_size() const { return size_in_bytes; }
 	[[nodiscard]] _int ndim() const { return view.ndim(); }
 	[[nodiscard]] _int shape(int idx) const;
@@ -54,10 +55,24 @@ public:
 	[[nodiscard]] tensor* get_parent() const { return parent.get(); }
 	std::shared_ptr<tensor> getptr() { return shared_from_this(); }
 
-	[[nodiscard]] static std::shared_ptr<tensor> create() {	return std::make_shared<tensor>(); }
-	[[nodiscard]] static std::shared_ptr<tensor> create(byte_* src, std::vector<_int>& shape, Format fmt = Format::kFormatFp32) { return std::make_shared<tensor>(src, shape, fmt); }
-	[[nodiscard]] static std::shared_ptr<tensor> create(byte_* src, const std::vector<_int>& shape, Format fmt = Format::kFormatFp32) { return std::make_shared<tensor>(src, shape, fmt); }
-	[[nodiscard]] static std::shared_ptr<tensor> create(const views& view, tensor* ptr, Format fmt) { return std::make_shared<tensor>(view, ptr, fmt); }
+	[[nodiscard]] static std::shared_ptr<tensor> create() { return std::make_shared<tensor>(); }
+
+	[[nodiscard]] static std::shared_ptr<tensor> create(byte_* src, std::vector<_int>& shape,
+	                                                    Format fmt = Format::kFormatFp32)
+	{
+		return std::make_shared<tensor>(src, shape, fmt);
+	}
+
+	[[nodiscard]] static std::shared_ptr<tensor> create(byte_* src, const std::vector<_int>& shape,
+	                                                    Format fmt = Format::kFormatFp32)
+	{
+		return std::make_shared<tensor>(src, shape, fmt);
+	}
+
+	[[nodiscard]] static std::shared_ptr<tensor> create(const views& view, tensor* ptr, Format fmt)
+	{
+		return std::make_shared<tensor>(view, ptr, fmt);
+	}
 
 
 private:

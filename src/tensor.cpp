@@ -211,4 +211,3 @@ tensor& tensor::operator[](const _int i)
 	children.emplace_back(view.select(0, i), this, dtype);
 	return children.back();
 }
-

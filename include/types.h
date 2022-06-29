@@ -43,9 +43,9 @@ inline char element_size(Format fmt)
 	return 0;
 }
 
-typedef size_t _int;
-typedef char  byte_;
+using _int = size_t;
+using byte_ = char;
 
-typedef std::vector<std::pair<size_t, size_t>> offset;
-typedef std::vector<_int> dim_vec;
-typedef std::vector<byte_> data_buffer;
+using offset = std::vector<std::pair<size_t, size_t>>;
+using dim_vec = std::vector<_int>;
+using data_buffer = std::vector<byte_>;

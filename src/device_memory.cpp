@@ -238,7 +238,7 @@ vk_block* vk_device_allocator::allocate(size_t size, bool make_buffer)
 	uint32_t memoryTypeIndex = 0;
 	size_t alignment = 0;
 	VkBuffer buffer{};
-//	VkImage image;
+	//	VkImage image;
 	if (make_buffer)
 	{
 		VkBufferCreateInfo bufferCreateInfo{};

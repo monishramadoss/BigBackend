@@ -9,7 +9,8 @@
 #include <vector>
 
 
-class compute_manager {
+class compute_manager
+{
 public:
 	compute_manager() = default;
 
@@ -32,14 +33,13 @@ public:
 	{
 		return output_map[cj].at(i);
 	}
-	
+
 	void run_kernels()
 	{
 		if (!pipeline_setup || starter == nullptr)
 		{
-
 		}
-		for(const auto kernel: run_queue)
+		for (const auto kernel : run_queue)
 		{
 			kernel->run();
 		}

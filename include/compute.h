@@ -26,7 +26,7 @@ protected:
 	int state{}; // -1 = error 0 = running 1 = transit 2 = complete
 public:
 	compute_job(std::string);
-	
+
 	compute_job(compute_job&);
 	compute_job(const compute_job&);
 	compute_job(compute_job&&) noexcept;
@@ -41,7 +41,7 @@ public:
 
 	void set_input(tensor& input);
 	void set_output(tensor& output);
-	
+
 	std::shared_ptr<compute_job> getptr() { return shared_from_this(); }
 	// ReSharper disable once CppSmartPointerVsMakeFunction
 	[[nodiscard]] static std::shared_ptr<compute_job> create(const std::string& compute_type)
@@ -77,18 +77,26 @@ void bindTensor(const VkDescriptorSet& descriptor_set, const VkBuffer& buffer, u
 class vulkan_compute_object : public compute_job, public std::enable_shared_from_this<vulkan_compute_object>
 {
 private:
-	vk_device device;
+	vk_device m_device;
 	VkShaderModule m_shader_module{};
+	VkPipeline m_pipeline{};
 	VkPipelineLayout m_pipeline_layout{};
-	VkCommandBuffer m_command_buffer{};
+	VkCommandBuffer m_cmd_buffer{};
 
 	VkDescriptorPool m_descriptor_pool{};
 	VkDescriptorSet m_descriptor_set{};
 	VkDescriptorSetLayout m_descriptor_set_layout{};
 
+	VkFence m_fence;
 
+	uint32_t m_group[3] = {1, 1, 1};
+
+protected:
+	void record_command_buffer(void* push_constants, uint32_t push_constant_size,
+	                           const VkSpecializationInfo* specialization_info = nullptr);
+	void execute_command_buffer();
 public:
-	vulkan_compute_object(int num_buffers, const std::string& compute_type="empty vulkan");
+	vulkan_compute_object(int num_buffers, const std::string& compute_type = "empty vulkan");
 
 	vulkan_compute_object(vulkan_compute_object&);
 	vulkan_compute_object(const vulkan_compute_object&);
@@ -96,6 +104,7 @@ public:
 
 	~vulkan_compute_object() override;
 	void run() override = 0;
+	std::string _source;
 };
 
 #endif

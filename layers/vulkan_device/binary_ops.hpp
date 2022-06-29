@@ -1,19 +1,41 @@
 #pragma once
-#include <chrono>
-#include <stdexcept>
-#include <string>
 
 #include "compute.h"
 #include "init.h"
 #include "types.h"
 #include "tensor.h"
 
+#include <chrono>
+#include <stdexcept>
+#include <string>
+
 
 #ifdef VULKAN
 #include <vulkan.hpp>
 
+struct binary_op_param
+{
+	uint32_t total;
+};
 
-std::string binary_op_template = "";
+
+std::string binary_op_template = R"(
+#version 460
+layout(push_constant) uniform pushblock {
+    uint total;
+};
+layout(binding=0) readonly buffer input_1 { float A[]; };
+layout(binding=1) readonly buffer input_2 { float B[]; };
+layout(binding=2) writeonly buffer output_1 { float C[]; };
+layout(local_size_x = 1024, local_size_y = 1, local_size_z=1) in;
+
+void main() {
+	for(uint i = gl_GlobalInvocationID.x; i < total; i += gl_NumWorkGroups.x * gl_WorkGroupSize.x){
+        C[i] = A[i] + B[i];        
+    }
+};
+
+)";
 
 namespace vk
 {
@@ -22,40 +44,53 @@ namespace vk
 	public:
 		binary_op();
 		tensor operator()(tensor&, tensor&);
-		virtual void kernel(tensor&, tensor&, tensor&) = 0;
-		void run() override {};
+		virtual void kernel(tensor&, tensor&, tensor&);
+		void run() override { execute_command_buffer(); };
 		std::string m_type = "naive_cpu_empty";
+		binary_op_param m_param{};
 	};
 
 	class add : public binary_op
 	{
 	public:
-		add() : binary_op() { m_type = "vulkan_cpu_add"; }
-		void kernel(tensor&, tensor&, tensor&) override;
+		add() : binary_op()
+		{
+			m_type = "vulkan_cpu_add";
+			_source = binary_op_template;
+		}
 	};
 
 
 	class sub : public binary_op
 	{
 	public:
-		sub() : binary_op() { m_type = "vulkan_gpu_sub"; }
-		void kernel(tensor&, tensor&, tensor&) override;
+		sub() : binary_op()
+		{
+			m_type = "vulkan_gpu_sub";
+			_source = binary_op_template;
+		}
 	};
 
 
 	class mul : public binary_op
 	{
 	public:
-		mul() : binary_op() { m_type = "vulkan_gpu_mul"; }
-		void kernel(tensor&, tensor&, tensor&) override;
+		mul() : binary_op()
+		{
+			m_type = "vulkan_gpu_mul";
+			_source = binary_op_template;
+		}
 	};
 
 
 	class true_div : public binary_op
 	{
 	public:
-		true_div() : binary_op() { m_type = "vulkan_gpu_div"; }
-		void kernel(tensor&, tensor&, tensor&) override;
+		true_div() : binary_op()
+		{
+			m_type = "vulkan_gpu_div";
+			_source = binary_op_template;
+		}
 	};
 }
 
@@ -72,19 +107,9 @@ namespace vk
 	{
 	}
 
-	inline void add::kernel(tensor& x, tensor& w, tensor& y)
+	inline void binary_op::kernel(tensor& x, tensor& y, tensor& z)
 	{
-	}
-
-	inline void sub::kernel(tensor& x, tensor& w, tensor& y)
-	{
-	}
-
-	inline void mul::kernel(tensor& x, tensor& w, tensor& y)
-	{
-	}
-
-	inline void true_div::kernel(tensor& x, tensor& w, tensor& y)
-	{
+		m_param.total = x.size();
+		record_command_buffer((void*)&m_param, sizeof(m_param));
 	}
 }

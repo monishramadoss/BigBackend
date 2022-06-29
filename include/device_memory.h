@@ -11,7 +11,6 @@
 #include <memory>
 
 
-
 inline bool isPowerOfTwo(size_t size)
 {
 	const bool ret = (size & (size - 1)) == 0;
@@ -96,7 +95,7 @@ static _int io_{0};
 
 class off_device_cache
 {
-	//TODO make like device_allocator witch chunks to be written places
+	//TODO make like device_allocator which chunks to be written places
 public:
 	off_device_cache() : local_rank(io_)
 	{

@@ -12,8 +12,6 @@
 #include <utility>
 
 
-
-
 //CLASS CODE
 
 class binary_op : public compute_job // operate on n dim
@@ -28,32 +26,44 @@ public:
 class add : public binary_op
 {
 public:
-	add() : binary_op("naive_cpu_add") {}
-	void kernel(block* x, block* w, block* y);
+	add() : binary_op("naive_cpu_add")
+	{
+	}
+
+	void kernel(block* x, block* w, block* y) override;
 };
 
 
 class sub : public binary_op
 {
 public:
-	sub() : binary_op("naive_cpu_sub") {}
-	void kernel(block* x, block* w, block* y);
+	sub() : binary_op("naive_cpu_sub")
+	{
+	}
+
+	void kernel(block* x, block* w, block* y) override;
 };
 
 
 class mul : public binary_op
 {
 public:
-	mul() : binary_op("naive_cpu_mul") {}
-	void kernel(block* x, block* w, block* y);
+	mul() : binary_op("naive_cpu_mul")
+	{
+	}
+
+	void kernel(block* x, block* w, block* y) override;
 };
 
 
 class true_div : public binary_op
 {
 public:
-	true_div() : binary_op("naive_cpu_div") {}
-	void kernel(block* x, block* w, block* y);
+	true_div() : binary_op("naive_cpu_div")
+	{
+	}
+
+	void kernel(block* x, block* w, block* y) override;
 };
 
 
@@ -89,7 +99,8 @@ inline void binary_op::kernel(block* x, block* w, block* y)
 
 inline void binary_op::run()
 {
-	kernel(global_compute_manager.get_input(this, 0), global_compute_manager.get_input(this, 1), global_compute_manager.get_output(this, 0));
+	kernel(global_compute_manager.get_input(this, 0), global_compute_manager.get_input(this, 1),
+	       global_compute_manager.get_output(this, 0));
 }
 
 inline void add::kernel(block* x, block* w, block* y)

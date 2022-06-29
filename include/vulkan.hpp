@@ -11,11 +11,11 @@
 //  void setup_vulkan(VkInstance& instance, VkDebugUtilsMessengerEXT& debugMessenger, VkPhysicalDevice& physicalDevice,
 //       uint32_t& queueFamilyIndex, VkDevice& device, VkQueue& queue);
 
-#ifdef NDEBUG
-constexpr bool enableValidationLayers = false;
-#else
-constexpr bool enableValidationLayers = false; //true;
-#endif
+//#ifdef NDEBUG
+//constexpr bool enableValidationLayers = false;
+//#else
+//constexpr bool enableValidationLayers = true;
+//#endif
 
 
 bool checkValidationLayerSupport();
@@ -65,7 +65,9 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 
 
 const std::vector<const char*> validationLayers = {
+#ifndef NDEBUG
 	"VK_LAYER_KHRONOS_validation"
+#endif
 };
 
 
@@ -111,9 +113,9 @@ inline bool checkValidationLayerSupport()
 inline std::vector<const char*> getRequiredExtensions()
 {
 	std::vector<const char*> extensions;
-
-	if (enableValidationLayers)
-		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#ifndef NDEBUG
+	extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
 
 	return extensions;
 }
@@ -133,17 +135,19 @@ inline void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT&
 
 inline void createInstance(VkInstance& instance)
 {
-	if (enableValidationLayers && !checkValidationLayerSupport())
+#ifndef NDEBUG
+	if (!checkValidationLayerSupport())
 	{
 		throw std::runtime_error("validation layers requested, but not available!");
 	}
+#endif
 
 	VkApplicationInfo appInfo{};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = "BigBackend";
 	appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
 	appInfo.pEngineName = "backend_engine";
-	appInfo.engineVersion = VK_MAKE_VERSION(1, 0 , 0);
+	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.apiVersion = VK_API_VERSION_1_1;
 
 	VkInstanceCreateInfo createInfo{};
@@ -155,23 +159,19 @@ inline void createInstance(VkInstance& instance)
 	createInfo.ppEnabledExtensionNames = extensions.data();
 
 	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
-	if (enableValidationLayers)
-	{
-		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		createInfo.ppEnabledLayerNames = validationLayers.data();
-		populateDebugMessengerCreateInfo(debugCreateInfo);
-		createInfo.pNext = &debugCreateInfo;
-	}
-	else
-	{
-		createInfo.enabledLayerCount = 0;
-		createInfo.pNext = nullptr;
-	}
-	
+#ifndef NDEBUG
+	createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+	createInfo.ppEnabledLayerNames = validationLayers.data();
+	populateDebugMessengerCreateInfo(debugCreateInfo);
+	createInfo.pNext = &debugCreateInfo;
+#else
+	createInfo.enabledLayerCount = 0;
+	createInfo.pNext = nullptr;
+#endif
+
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
 	{
-		return;
-//		throw std::runtime_error("failed to create instance!");
+		//		throw std::runtime_error("failed to create instance!");
 	}
 }
 
@@ -191,19 +191,23 @@ inline VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugU
 inline void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
                                           const VkAllocationCallbacks* pAllocator)
 {
-	if constexpr (!enableValidationLayers) return;
-
+#ifdef NDEBUG
+	return;
+#else
 	const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
 		vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
 	if (func != nullptr)
 	{
 		func(instance, debugMessenger, pAllocator);
 	}
+#endif
 }
 
 inline void setupDebugMessenger(const VkInstance& instance, VkDebugUtilsMessengerEXT& debugMessenger)
 {
-	if constexpr (!enableValidationLayers) return;
+#ifdef NDEBUG
+	return;
+#else
 	VkDebugUtilsMessengerCreateInfoEXT createInfo{};
 	populateDebugMessengerCreateInfo(createInfo);
 
@@ -211,6 +215,7 @@ inline void setupDebugMessenger(const VkInstance& instance, VkDebugUtilsMessenge
 	{
 		throw std::runtime_error("failed to set up debug messenger!");
 	}
+#endif
 }
 
 inline bool isDeviceSuitable(VkPhysicalDevice device, uint32_t& queueFamilyIndex)
@@ -281,16 +286,12 @@ inline void createLogicalDeviceAndQueue(const VkPhysicalDevice& physicalDevice,
 	deviceCreateInfo.queueCreateInfoCount = 1;
 	deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
 
-	if (enableValidationLayers)
-	{
-		deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
-	}
-	else
-	{
-		deviceCreateInfo.enabledLayerCount = 0;
-	}
-
+#ifndef NDEBUG
+	deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+	deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+#else
+	deviceCreateInfo.enabledLayerCount = 0;
+#endif
 	if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS)
 		throw std::runtime_error("failed to create logical device!");
 
