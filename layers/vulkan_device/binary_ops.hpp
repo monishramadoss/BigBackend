@@ -39,13 +39,21 @@ void main() {
 
 namespace vk
 {
-	class binary_op : public vulkan_compute_object // operate on n dim
+	class binary_op : public vulkan_compute_job // operate on n dim
 	{
 	public:
 		binary_op();
 		tensor operator()(tensor&, tensor&);
 		virtual void kernel(tensor&, tensor&, tensor&);
-		void run() override { execute_command_buffer(); };
+		void run() override { execute_command_buffer(); }
+
+		void compute_group_size() override {
+			m_group[0] = static_cast<uint32_t>(alignSize(m_param.total, 1024)) / 1024;
+			if (m_group[0] > m_device.m_max_work_group_count[0])
+				m_group[0] = m_device.m_max_work_group_count[0] - 1;
+		}
+
+
 		std::string m_type = "naive_cpu_empty";
 		binary_op_param m_param{};
 	};
@@ -103,13 +111,21 @@ namespace vk
 
 namespace vk
 {
-	inline binary_op::binary_op() : vulkan_compute_object(3)
+	inline binary_op::binary_op() : vulkan_compute_job(3, *(vk_device*)device::device_lst[1])
 	{
+		
 	}
 
 	inline void binary_op::kernel(tensor& x, tensor& y, tensor& z)
 	{
-		m_param.total = x.size();
+		auto* p1 = x.get_data();
+		auto* p2 = y.get_data();
+		auto* p3 = z.get_data();
+
+		bind_tensor(x, 0);
+		bind_tensor(y, 1);
+		bind_tensor(z, 2);
+		m_param.total = static_cast<uint32_t>(x.size());
 		record_command_buffer((void*)&m_param, sizeof(m_param));
 	}
 }

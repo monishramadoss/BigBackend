@@ -50,8 +50,8 @@ void compute_job::set_output(tensor& output)
 void compute_job::run() { state = 2; }
 
 
-vulkan_compute_object::vulkan_compute_object(int num_buffers, const std::string& compute_type) :
-	compute_job(compute_type), m_device(get_vk_device())
+vulkan_compute_job::vulkan_compute_job(int num_buffers, vk_device& device, const std::string& compute_type) :
+	compute_job(compute_type), m_device(device)
 {
 	if (num_buffers <= 0)
 		return;
@@ -100,11 +100,11 @@ vulkan_compute_object::vulkan_compute_object(int num_buffers, const std::string&
 		throw std::runtime_error("CANNOT ALLOCATE COMMAND BUFFER");
 }
 
-vulkan_compute_object::vulkan_compute_object(vulkan_compute_object&) = default;
-vulkan_compute_object::vulkan_compute_object(const vulkan_compute_object&) = default;
-vulkan_compute_object::vulkan_compute_object(vulkan_compute_object&&) noexcept = default;
+vulkan_compute_job::vulkan_compute_job(vulkan_compute_job&) = default;
+vulkan_compute_job::vulkan_compute_job(const vulkan_compute_job&) = default;
+vulkan_compute_job::vulkan_compute_job(vulkan_compute_job&&) noexcept = default;
 
-vulkan_compute_object::~vulkan_compute_object() = default;
+vulkan_compute_job::~vulkan_compute_job() = default;
 
 void bindTensor(const VkDevice& device, const VkDescriptorSet& descriptor_set, const VkBuffer& storage,
                 size_t size_in_bytes, uint32_t binding)
@@ -126,10 +126,11 @@ void bindTensor(const VkDevice& device, const VkDescriptorSet& descriptor_set, c
 }
 
 
-void createShaderModule(VkDevice& device, VkShaderModule* shader_module, const uint32_t* spv, size_t size,
+void createShaderModule(const VkDevice& device, VkShaderModule* shader_module, const uint32_t* spv, size_t size,
                         const std::string& source)
 {
 	VkShaderModuleCreateInfo create_info = {};
+	create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	if (spv)
 	{
 		create_info.pCode = spv;
@@ -137,7 +138,7 @@ void createShaderModule(VkDevice& device, VkShaderModule* shader_module, const u
 	}
 	else
 	{
-		std::vector<uint32_t> code = compileSource(source);
+		const std::vector<uint32_t> code = compile(source);
 		create_info.pCode = code.data();
 		create_info.codeSize = sizeof(uint32_t) * code.size();
 	}
@@ -147,17 +148,38 @@ void createShaderModule(VkDevice& device, VkShaderModule* shader_module, const u
 }
 
 
-void vulkan_compute_object::record_command_buffer(void* push_constants, uint32_t push_constants_size,
+void vulkan_compute_job::bind_tensor(tensor& t, uint32_t binding)
+{
+	VkDescriptorBufferInfo desc_buffer_info = {};
+	auto* d_ptr = t.get_data();
+
+	desc_buffer_info.buffer = global_store_manager.get_vk_buffer(d_ptr);
+	desc_buffer_info.offset = 0;
+	desc_buffer_info.range = t.data_size();
+
+	VkWriteDescriptorSet write_descriptor_set = {};
+	write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write_descriptor_set.dstSet = m_descriptor_set;
+	write_descriptor_set.dstBinding = binding;
+	write_descriptor_set.descriptorCount = 1;
+	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	write_descriptor_set.pBufferInfo = &desc_buffer_info;
+
+	vkUpdateDescriptorSets(m_device.get_device(), 1, &write_descriptor_set, 0, nullptr);
+}
+
+void vulkan_compute_job::record_command_buffer(const void* push_constants, uint32_t push_constants_size,
                                                   const VkSpecializationInfo* specialization_info)
 {
 	if (m_pipeline == nullptr)
 	{
-		/*
-		*  createShaderModule(_shader, _shader_size);
-		   createPipeline(sizeof(param));
-		*/
-
-		createShaderModule(m_device.get_device(), &m_shader_module, nullptr, 0, _source);
+		VkShaderModuleCreateInfo create_info = {};
+		create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		const std::vector<uint32_t> code = compile(_source);
+		create_info.pCode = code.data();
+		create_info.codeSize = sizeof(uint32_t) * code.size();
+		if (vkCreateShaderModule(m_device.get_device(), &create_info, nullptr, &m_shader_module) != VK_SUCCESS)
+			throw std::runtime_error("Not able to create shader code");
 
 		VkPipelineShaderStageCreateInfo stage_create_info = {};
 		stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -215,7 +237,7 @@ void vulkan_compute_object::record_command_buffer(void* push_constants, uint32_t
 }
 
 
-void vulkan_compute_object::execute_command_buffer()
+void vulkan_compute_job::execute_command_buffer()
 {
 	VkSubmitInfo submit_info = {};
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

@@ -74,7 +74,8 @@ public:
 		return std::make_shared<tensor>(view, ptr, fmt);
 	}
 
-
+	[[nodiscard]] std::pair<_int, _int> get_offset() const;
+	
 private:
 	//std::shared_ptr<tensor> gradient;
 	std::shared_ptr<tensor> parent;
@@ -83,7 +84,8 @@ private:
 	std::vector<int> shard_state;
 	std::shared_ptr<byte_*> data_ptr{};
 
-	[[nodiscard]] std::pair<_int, _int> get_offset() const;
+
+	
 	void clear_storage();
 
 	tensor* next = nullptr;

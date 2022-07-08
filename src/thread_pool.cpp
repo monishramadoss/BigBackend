@@ -1,6 +1,5 @@
 #include "thread_pool.h"
 
-
 void Thread::queue_loop()
 {
 	while (true)
@@ -54,11 +53,13 @@ void ThreadPool::setThreadCount(_int count)
 		return;
 	num_threads = count;
 	threads.clear();
+	//threads.clear();
 	for (_int i = 0; i < count; ++i)
 	{
 		auto th = std::make_unique<Thread>();
 		thread_ids.push_back(th->pid());
 		threads[th->pid()] = std::move(th);
+
 	}
 }
 

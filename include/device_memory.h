@@ -136,12 +136,14 @@ struct vk_block
 	bool free{};
 	int device_id{};
 	byte_* ptr = nullptr;
+	VkBuffer buf = VK_NULL_HANDLE;
+	VkImage img = VK_NULL_HANDLE;
 
 	bool operator==(const vk_block& blk) const
 	{
 		return offset == blk.offset && size == blk.size &&
 			free == blk.free && ptr == blk.ptr && device_id == blk.device_id &&
-			memory == blk.memory;
+			memory == blk.memory && buf == blk.buf && img == blk.img;
 	}
 };
 
@@ -165,15 +167,16 @@ private:
 };
 
 
-class vk_device_allocator
+class vk_allocator
 {
 public:
-	vk_device_allocator(const VkDevice& dev, const VkPhysicalDeviceMemoryProperties& properties, size_t size = 4096);
+	vk_allocator();
+	vk_allocator(const VkDevice& dev, const VkPhysicalDeviceMemoryProperties& properties, size_t size = 4096);
 	vk_block* allocate(size_t size, bool make_buffer = true);
 	void deallocate(vk_block* blk);
 
-	VkBuffer get_buffer(vk_block* blk) { return buffer_map[blk]; }
-	VkImage get_image(vk_block* blk) { return image_map[blk]; }
+	static VkBuffer& get_buffer(vk_block* blk) { return blk->buf; }
+	static VkImage& get_image(vk_block* blk) { return blk->img; }
 
 private:
 	size_t m_size;
@@ -190,8 +193,6 @@ private:
 	*	Buffer 2 Image
 	*/
 
-	std::map<vk_block*, VkBuffer> buffer_map;
-	std::map<vk_block*, VkImage> image_map;
 };
 
 #endif

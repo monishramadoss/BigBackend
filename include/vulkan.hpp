@@ -137,9 +137,7 @@ inline void createInstance(VkInstance& instance)
 {
 #ifndef NDEBUG
 	if (!checkValidationLayerSupport())
-	{
 		throw std::runtime_error("validation layers requested, but not available!");
-	}
 #endif
 
 	VkApplicationInfo appInfo{};

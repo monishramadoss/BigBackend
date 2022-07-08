@@ -38,7 +38,7 @@ byte_* data_ones(dim_vec& shape)
 template <typename T>
 byte_* data_arange(int64_t min, int64_t max, int64_t step = 1)
 {
-	double _tmp = (max - min) / step;
+	double _tmp = double(max - min) / step;
 	const auto data_size = static_cast<_int>(ceil(_tmp));
 
 	T* dst = new T[data_size];

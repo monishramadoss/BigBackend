@@ -16,7 +16,7 @@ tensor::tensor(byte_* src, std::vector<_int>& shape, Format fmt) : local_tensor_
                                                                    view(element_size(fmt), shape),
                                                                    size_in_bytes(view.size_in_bytes())
 {
-	auto* dst = global_store_manager.allocate_block(size_in_bytes);
+	auto* dst = static_cast<byte_*>(global_store_manager.allocate_block(size_in_bytes));
 	data_ptr = std::make_shared<byte_*>(dst);
 	global_store_manager.copy_block(dst, src, size_in_bytes);
 	global_store_manager.free_block(src);
@@ -26,7 +26,7 @@ tensor::tensor(byte_* src, const std::vector<_int>& shape, Format fmt) : local_t
                                                                          dtype(fmt), view(element_size(fmt), shape),
                                                                          size_in_bytes(view.size_in_bytes())
 {
-	auto* dst = global_store_manager.allocate_block(size_in_bytes);
+	auto* dst = static_cast<byte_*>(global_store_manager.allocate_block(size_in_bytes));
 	data_ptr = std::make_shared<byte_*>(dst);
 	global_store_manager.copy_block(dst, src, size_in_bytes);
 	global_store_manager.free_block(src);
@@ -47,7 +47,6 @@ tensor::tensor(tensor&& t) noexcept = default;
 tensor::tensor(const tensor& t) : local_tensor_id(t.local_tensor_id), dtype(t.dtype),
                                   children(t.children), view(t.view), size_in_bytes(t.size_in_bytes)
 {
-	// std::cout << "Tensor Copy Operator" << std::endl;
 	if (parent == nullptr)
 		parent = t.parent;
 	data_ptr = t.data_ptr;
@@ -55,7 +54,6 @@ tensor::tensor(const tensor& t) : local_tensor_id(t.local_tensor_id), dtype(t.dt
 
 tensor& tensor::operator=(const tensor& t)
 {
-	// std::cout << "Tensor Assign Operator" << std::endl;
 	if (this == &t && local_tensor_id == t.local_tensor_id)
 		return *this;
 
@@ -72,7 +70,6 @@ tensor& tensor::operator=(const tensor& t)
 
 tensor& tensor::operator=(tensor&& t) noexcept
 {
-	// std::cout << "Tensor Assigned Move Operator" << std::endl;
 	if (this == &t)
 		return *this;
 
@@ -111,6 +108,7 @@ std::pair<_int, _int> tensor::get_offset() const
 	}
 	return o;
 }
+
 
 void tensor::clear_storage()
 {
@@ -153,7 +151,7 @@ byte_* tensor::get_data()
 
 	if (data_ptr == nullptr || *data_ptr == nullptr)
 	{
-		auto* new_data = global_store_manager.allocate_block(size_in_bytes);
+		byte_* new_data = (byte_*)global_store_manager.allocate_block(size_in_bytes);
 		data_ptr = std::make_shared<byte_*>(new_data);
 		global_store_manager.copy_block(new_data, src + offset, size_in_bytes);
 	}
@@ -211,3 +209,5 @@ tensor& tensor::operator[](const _int i)
 	children.emplace_back(view.select(0, i), this, dtype);
 	return children.back();
 }
+
+

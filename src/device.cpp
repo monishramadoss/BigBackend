@@ -37,34 +37,58 @@ _int used_memory{0};
 device::device() : m_num_threads(std::thread::hardware_concurrency()), device_id(devices.size()), global_rank(0),
                    local_rank(0), m_max_memory_size(getTotalSystemMemory())
 {
-	m_pool.setThreadCount(m_num_threads);
+	//device::device_lst.push_back(this);
+	//m_pool.setThreadCount(m_num_threads);
 }
 
 device::device(device& d) : m_num_threads(std::thread::hardware_concurrency()), device_id(d.device_id),
                             global_rank(d.global_rank), local_rank(d.local_rank),
                             m_max_memory_size(d.m_max_memory_size)
 {
-	m_pool.setThreadCount(m_num_threads);
+	//m_pool.setThreadCount(m_num_threads);
 }
 
 device::device(const device& d) : m_num_threads(std::thread::hardware_concurrency()), device_id(d.device_id),
                                   global_rank(d.global_rank), local_rank(d.local_rank),
                                   m_max_memory_size(d.m_max_memory_size)
 {
-	m_pool.setThreadCount(m_num_threads);
+	//m_pool.setThreadCount(m_num_threads);
 }
 
 device::device(device&& d) noexcept : m_num_threads(std::thread::hardware_concurrency()), device_id(d.device_id),
                                       global_rank(d.global_rank), local_rank(d.local_rank),
                                       m_max_memory_size(d.m_max_memory_size)
 {
-	m_pool.setThreadCount(m_num_threads);
+	//m_pool.setThreadCount(m_num_threads);
 }
 
 device& device::operator=(const device&) = default;
 
-
 device::~device() = default;
+
+void* device::malloc(size_t size)
+{
+	block* blk = m_allocator.allocate(size);
+	void* ptr = blk->ptr + blk->offset;
+	memory_map[ptr] = blk;
+	return ptr;
+}
+
+void device::free(void* ptr)
+{
+	block* blk = memory_map[ptr];
+	m_allocator.deallocate(blk);
+}
+
+void device::memcpy(void* dst, void* src, size_t size)
+{
+	const auto* src_blk = memory_map[src];
+	const auto* dst_blk = memory_map[dst];
+	if(size == 0)
+		size = min(src_blk->size, dst_blk->size);
+
+	std::memcpy(dst, src, size);
+}
 
 
 bool device::is_avalible(int d_type) const
@@ -72,6 +96,21 @@ bool device::is_avalible(int d_type) const
 	if (m_device_type != d_type)
 		return false;
 	return true;
+}
+
+
+block* device::get_block(void* ptr)
+{
+	const auto blk = memory_map.find(ptr);
+	if (blk == memory_map.end())
+		return nullptr;
+	else
+		return blk->second;
+}
+
+void device::transfer(device& dev)
+{
+
 }
 
 
@@ -101,11 +140,11 @@ inline uint32_t get_heap_index(const VkMemoryPropertyFlags& flags, const VkPhysi
  */
 
 vk_device::vk_device(const VkInstance& instance, const VkPhysicalDevice& pDevice) :
-	device(), m_instance(instance), m_physical_device(pDevice), m_transfer_cmd_buffer(nullptr)
+	device(), m_instance(instance), m_physical_device(pDevice), m_staging_cmd_buffer(nullptr)
 {
+	m_device_type = 1;
 	setupDebugMessenger(m_instance, m_debug_messenger);
 
-	m_device_type = 2;
 	vkGetPhysicalDeviceProperties(pDevice, &m_device_properties);
 	vkGetPhysicalDeviceMemoryProperties(pDevice, &m_memory_properties);
 
@@ -115,14 +154,14 @@ vk_device::vk_device(const VkInstance& instance, const VkPhysicalDevice& pDevice
 		throw std::runtime_error("Cannot find device heap");
 
 	m_max_device_memory_size = m_memory_properties.memoryHeaps[heap_idx].size;
-
+	m_max_memory_size = m_max_device_memory_size;
 	// auto buffer_copy_offset = m_device_properties.limits.optimalBufferCopyOffsetAlignment;
-	m_max_work_group_size[0] = m_device_properties.limits.maxComputeWorkGroupCount[0];
-	m_max_work_group_size[1] = m_device_properties.limits.maxComputeWorkGroupCount[1];
-	m_max_work_group_size[2] = m_device_properties.limits.maxComputeWorkGroupCount[2];
-	m_max_work_groups[0] = m_device_properties.limits.maxComputeWorkGroupSize[0];
-	m_max_work_groups[1] = m_device_properties.limits.maxComputeWorkGroupSize[1];
-	m_max_work_groups[2] = m_device_properties.limits.maxComputeWorkGroupSize[2];
+	m_max_work_group_count[0] = m_device_properties.limits.maxComputeWorkGroupCount[0];
+	m_max_work_group_count[1] = m_device_properties.limits.maxComputeWorkGroupCount[1];
+	m_max_work_group_count[2] = m_device_properties.limits.maxComputeWorkGroupCount[2];
+	m_max_work_group_size[0] = m_device_properties.limits.maxComputeWorkGroupSize[0];
+	m_max_work_group_size[1] = m_device_properties.limits.maxComputeWorkGroupSize[1];
+	m_max_work_group_size[2] = m_device_properties.limits.maxComputeWorkGroupSize[2];
 
 	uint32_t queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(pDevice, &queueFamilyCount, nullptr);
@@ -187,17 +226,20 @@ vk_device::vk_device(const VkInstance& instance, const VkPhysicalDevice& pDevice
 	buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 	buffer_allocate_info.commandBufferCount = 1;
 
-	if (vkAllocateCommandBuffers(m_device, &buffer_allocate_info, &m_transfer_cmd_buffer) != VK_SUCCESS)
+	if (vkAllocateCommandBuffers(m_device, &buffer_allocate_info, &m_staging_cmd_buffer) != VK_SUCCESS)
 		throw std::runtime_error("failed to create transfer buffer");
+
+	m_allocator = vk_allocator(m_device, m_memory_properties, 16);
+
 }
 
 
-vk_device::vk_device(const vk_device& vkd)
+vk_device::vk_device(const vk_device& vkd) : m_allocator(vkd.m_allocator)
 {
 	for (char i = 0; i < 3; ++i)
 	{
-		m_max_work_groups[i] = vkd.m_max_work_groups[i];
 		m_max_work_group_size[i] = vkd.m_max_work_group_size[i];
+		m_max_work_group_count[i] = vkd.m_max_work_group_count[i];
 	}
 
 	m_instance = vkd.m_instance;
@@ -217,16 +259,19 @@ vk_device::vk_device(const vk_device& vkd)
 	m_max_device_memory_size = vkd.m_max_device_memory_size;
 
 	m_staging_queue = vkd.m_staging_queue;
-	m_transfer_cmd_buffer = vkd.m_transfer_cmd_buffer;
+	m_staging_cmd_buffer = vkd.m_staging_cmd_buffer;
+
+	memory_map = vkd.memory_map;
+	device_memory_map = vkd.device_memory_map;
 }
 
 
-vk_device::vk_device(vk_device&& vkd) noexcept
+vk_device::vk_device(vk_device&& vkd) noexcept : m_allocator(std::move(vkd.m_allocator))
 {
 	for (char i = 0; i < 3; ++i)
 	{
-		m_max_work_groups[i] = vkd.m_max_work_groups[i];
 		m_max_work_group_size[i] = vkd.m_max_work_group_size[i];
+		m_max_work_group_count[i] = vkd.m_max_work_group_count[i];
 	}
 
 	m_instance = vkd.m_instance;
@@ -246,17 +291,91 @@ vk_device::vk_device(vk_device&& vkd) noexcept
 	m_max_device_memory_size = vkd.m_max_device_memory_size;
 
 	m_staging_queue = vkd.m_staging_queue;
-	m_transfer_cmd_buffer = vkd.m_transfer_cmd_buffer;
+	m_staging_cmd_buffer = vkd.m_staging_cmd_buffer;
+
+	memory_map = std::move(vkd.memory_map);
+	device_memory_map = std::move(vkd.device_memory_map);
 };
 
 vk_device::~vk_device() = default;
+
+void* vk_device::malloc(size_t size)
+{
+	void* ptr = device::malloc(size);
+	auto* blk = memory_map[ptr];
+	auto* vk_blk = m_allocator.allocate(size, true);
+	device_memory_map[blk] = vk_blk;
+	return ptr;
+}
+
+void vk_device::free(void* ptr)
+{
+	offload(ptr);
+	device::free(ptr);
+
+}
+
+void vk_device::memcpy(void* src, void* dst, size_t size)
+{
+	auto* src_blk = get_block(src);
+	auto* dst_blk = get_block(dst);
+
+
+	auto* src_vk_blk = device_memory_map[src_blk];
+	auto* dst_vk_blk = device_memory_map[dst_blk];
+
+	/*
+	 *VkBuffer src_buf = m_allocator.get_buffer(src_vk_blk);
+	VkBuffer dst_buf = m_allocator.get_buffer(dst_vk_blk);
+	*/
+
+	device::memcpy(src, dst, size);
+}
+
+bool vk_device::upload(void* ptr)
+{
+	auto* blk = get_block(ptr);
+	const auto vk_blk = device_memory_map.find(blk);
+	if (vk_blk == device_memory_map.end() || vk_blk->second == nullptr)
+	{
+		ptr = this->malloc(blk->size);
+		return false;
+	}
+
+	//copy block on to device
+	
+	return true;
+
+}
+
+bool vk_device::offload(void* ptr)
+{
+	// copy block off to data
+
+	auto* blk = get_block(ptr);
+	const auto h_d_blks = device_memory_map.find(blk);
+	if (h_d_blks == device_memory_map.end())
+	{
+		auto* vk_blk = h_d_blks->second;
+		m_allocator.deallocate(vk_blk);
+	}
+	device_memory_map[blk] = nullptr;
+	return device::offload(ptr);
+}
+
+void* vk_device::get_buffer(void* ptr)
+{
+	auto* blk = get_block(ptr);
+	return (void*)m_allocator.get_buffer(device_memory_map[blk]);
+}
+
 
 vk_device& vk_device::operator=(const vk_device& vkd)
 {
 	for (char i = 0; i < 3; ++i)
 	{
-		m_max_work_groups[i] = vkd.m_max_work_groups[i];
 		m_max_work_group_size[i] = vkd.m_max_work_group_size[i];
+		m_max_work_group_count[i] = vkd.m_max_work_group_count[i];
 	}
 
 	m_instance = vkd.m_instance;
@@ -276,22 +395,15 @@ vk_device& vk_device::operator=(const vk_device& vkd)
 	m_max_device_memory_size = vkd.m_max_device_memory_size;
 
 	m_staging_queue = vkd.m_staging_queue;
-	m_transfer_cmd_buffer = vkd.m_transfer_cmd_buffer;
+	m_staging_cmd_buffer = vkd.m_staging_cmd_buffer;
+
+	m_allocator = vkd.m_allocator;
+
 	return *this;
 }
 
 
-VkDevice& vk_device::get_device()
-{
-	return m_device;
-}
-
-VkPhysicalDeviceMemoryProperties vk_device::get_mem_properties() const
-{
-	return m_memory_properties;
-}
-
-void emplace_vulkan_devices(std::vector<vk_device>& devices)
+void emplace_vulkan_devices(std::vector<vk_device*>& devices)
 {
 	VkInstance vk_instance = VK_NULL_HANDLE;
 	createInstance(vk_instance);
@@ -307,19 +419,18 @@ void emplace_vulkan_devices(std::vector<vk_device>& devices)
 	std::vector<VkPhysicalDevice> vkdevices(deviceCount);
 	vkEnumeratePhysicalDevices(vk_instance, &deviceCount, vkdevices.data());
 	for (VkPhysicalDevice& pDevice : vkdevices)
-		devices.emplace_back(vk_instance, pDevice);
+		devices.push_back(new vk_device(vk_instance, pDevice));
 }
 
-vk_device& get_vk_device()
+
+
+bool vk_device::is_on_device(block* blk)
 {
-	if (vk_devices.empty())
-		emplace_vulkan_devices(vk_devices);
-
-	// if (vk_devices.empty())
-	//	return;
-
-	return vk_devices[0];
+	const auto vk_blk = device_memory_map.find(blk);
+	bool ret = vk_blk == device_memory_map.end() || vk_blk->second == nullptr;
+	return !ret;
 }
+
 
 #else
 void emplace_vulkan_devices(std::vector<vk_device>& devices)
@@ -329,34 +440,43 @@ void emplace_vulkan_devices(std::vector<vk_device>& devices)
 
 #endif
 
-
+host_allocator device::m_allocator = host_allocator(1048576); // 4096);
 ThreadPool device::m_pool = ThreadPool();
 std::vector<std::vector<float>> device::m_transfer_latency = {};
 std::vector<std::vector<float>> device::m_compute_latency = {};
+std::vector<device*> device::device_lst = init_devices();
+
+std::vector<device*>& init_devices()
+{
+	//std::vector<device*> devices;
+	if (devices.empty())
+	{
+		devices.push_back(new device());
+
+#ifdef VULKAN
+		std::vector<vk_device*> vk_devices;
+		emplace_vulkan_devices(vk_devices);
+	
+		for (auto i = 0; i < vk_devices.size(); ++i)
+		{
+			devices.push_back((device*)vk_devices[i]);
+		}
+#endif
+		device::m_transfer_latency = std::vector<std::vector<float>>(devices.size(), std::vector<float>(devices.size(), 0.0));
+		device::m_compute_latency = std::vector<std::vector<float>>(devices.size(), std::vector<float>(devices.size(), 0.0));
+	}
+	return devices;
+}
 
 
 device& get_avalible_device(int device_type)
 {
-	if (devices.empty())
-		devices.emplace_back();
-
-#ifdef VULKAN
-	if (vk_devices.empty())
-	{
-		emplace_vulkan_devices(vk_devices);
-		for (auto& dev : vk_devices)
-			devices.push_back(dev);
-	}
-#endif
 
 	for (auto& dev : devices)
 	{
-		if (dev.is_avalible(device_type))
-			return dev;
+		if (dev->is_avalible(device_type))
+			return *dev;
 	}
 
-	device::m_transfer_latency = std::vector<std::vector<float>>(devices.size(), std::vector<float>(devices.size(), 0));
-	device::m_compute_latency = std::vector<std::vector<float>>(devices.size(), std::vector<float>(devices.size(), 0));
-
-	return devices[0];
+	return *devices[0];
 }

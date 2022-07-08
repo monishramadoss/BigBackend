@@ -12,7 +12,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
-
+#include <map>
 
 class tensor;
 class compute_job;
@@ -41,8 +41,23 @@ public:
 	static std::vector<std::vector<float>> m_compute_latency;
 
 	virtual ~device();
-	int m_device_type = -1;
 	size_t m_num_threads;
+
+	virtual void* malloc(size_t size);
+	virtual void free(void* ptr);
+	virtual void memcpy(void* dst, void* src, size_t size=0);
+
+	virtual bool offload(void* ptr) { return true; }
+	virtual bool upload(void* ptr) { return true; }
+
+	virtual void* get_buffer(void* ptr) { return nullptr; }
+	block* get_block(void* ptr);
+
+	virtual void transfer(device& dev);
+
+	static std::vector<device*> device_lst;
+
+	_int type() const { return device_id; }
 
 protected:
 	_int device_id;
@@ -51,13 +66,17 @@ protected:
 	_int m_max_memory_size;
 	static host_allocator m_allocator;
 	static ThreadPool m_pool;
+	int m_device_type = -1;
+
+	std::map<void*, block*> memory_map;
 };
 
-static std::vector<device> devices{};
+std::vector<device*>& init_devices();
+static std::vector<device*> devices; // = init_devices();
 
 #ifdef VULKAN
-
 #include <vulkan/vulkan.h>
+
 
 class vk_device : public device
 {
@@ -68,17 +87,27 @@ public:
 	vk_device& operator=(const vk_device&);
 	~vk_device() override;
 
-	[[nodiscard]] VkDevice& get_device();
-	[[nodiscard]] VkPhysicalDeviceMemoryProperties get_mem_properties() const;
-	int m_max_work_group_size[3];
-	int m_max_work_groups[3];
+	VkDevice& get_device() { return m_device; }
+	[[nodiscard]] VkPhysicalDeviceMemoryProperties get_mem_properties() const { return m_memory_properties; }
+	uint32_t m_max_work_group_count[3];
+	uint32_t m_max_work_group_size[3];
 
 	VkCommandPool& get_cmd_pool() { return m_cmd_pool; }
 	VkQueue& get_queue() { return m_cmd_queue; }
 
-	void lock() { device_lock.lock(); }
-	void unlock() { device_lock.unlock(); }
+	void lock() { this->device_lock.lock(); }
+	void unlock() { this->device_lock.unlock(); }
 
+
+	void* malloc(size_t size) override;
+	void free(void* ptr) override;
+	void memcpy(void* src, void* dst, size_t size=0) override;
+
+	bool upload(void* ptr) override;
+	bool offload(void* ptr) override;
+
+	void* get_buffer(void* ptr) override;
+	
 private:
 	VkInstance m_instance{};
 	VkPhysicalDevice m_physical_device{};
@@ -96,13 +125,19 @@ private:
 
 	_int m_max_device_memory_size{0};
 	VkQueue m_staging_queue{};
-	VkCommandBuffer m_transfer_cmd_buffer;
+	VkCommandBuffer m_staging_cmd_buffer;
+
+	vk_allocator m_allocator;
 
 	std::mutex device_lock;
+	std::map<block*, vk_block*> device_memory_map;
+
+	bool is_on_device(block* blk);
 };
 
+
 static std::vector<vk_device> vk_devices{};
-vk_device& get_vk_device();
+inline std::vector<vk_device>& get_vk_devices() { return vk_devices; }
 
 #endif
 
@@ -117,4 +152,4 @@ private:
 };
 #endif
 
-device& get_avalible_device(int device_type = -1);
+//device& get_avalible_device(int device_type = -1);

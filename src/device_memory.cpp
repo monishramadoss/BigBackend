@@ -224,8 +224,12 @@ vk_chunk::~vk_chunk()
 }
 
 
-vk_device_allocator::vk_device_allocator(const VkDevice& dev, const VkPhysicalDeviceMemoryProperties& properties,
-                                         size_t size): m_size(size), m_device(dev), properties(properties)
+vk_allocator::vk_allocator(): m_size(0), m_alignment(0), m_device(nullptr), properties()
+{
+}
+
+vk_allocator::vk_allocator(const VkDevice& dev, const VkPhysicalDeviceMemoryProperties& properties,
+                           size_t size): m_size(size), m_device(dev), properties(properties)
 {
 	if (!isPowerOfTwo(size))
 		throw std::runtime_error("Size must be in allocation of power 2");
@@ -233,12 +237,13 @@ vk_device_allocator::vk_device_allocator(const VkDevice& dev, const VkPhysicalDe
 }
 
 
-vk_block* vk_device_allocator::allocate(size_t size, bool make_buffer)
+vk_block* vk_allocator::allocate(size_t size, bool make_buffer)
 {
 	uint32_t memoryTypeIndex = 0;
 	size_t alignment = 0;
 	VkBuffer buffer{};
-	//	VkImage image;
+	VkImage image{};
+
 	if (make_buffer)
 	{
 		VkBufferCreateInfo bufferCreateInfo{};
@@ -256,23 +261,39 @@ vk_block* vk_device_allocator::allocate(size_t size, bool make_buffer)
 			requiredMemorySize += bufferMemoryRequirements.alignment - bufferMemoryRequirements.size % bufferMemoryRequirements.alignment;
 		}*/
 
-
 		if (vkCreateBuffer(m_device, &bufferCreateInfo, nullptr, &buffer) != VK_SUCCESS)
-		{
 			throw std::runtime_error("failed to create buffer");
-		}
+
 		VkMemoryRequirements bufferMemoryRequirements;
 		vkGetBufferMemoryRequirements(m_device, buffer, &bufferMemoryRequirements);
 		alignment = bufferMemoryRequirements.alignment;
 		memoryTypeIndex = findMemoryTypeIndex(bufferMemoryRequirements.memoryTypeBits, properties, true);
 	}
-
+	else
+	{
+		VkImageCreateInfo imageCreateInfo{};
+		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+//		imageCreateInfo.
+		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		if (vkCreateImage(m_device, &imageCreateInfo, nullptr, &image) != VK_SUCCESS)
+			throw std::runtime_error("failed to create image");
+		VkMemoryRequirements imageMemoryRequirements;
+		vkGetImageMemoryRequirements(m_device, image, &imageMemoryRequirements);
+		alignment = imageMemoryRequirements.alignment;
+		memoryTypeIndex = findMemoryTypeIndex(imageMemoryRequirements.memoryTypeBits, properties, true);
+	}
 
 	vk_block* blk = nullptr;
 	for (const auto& chunk : m_chunks)
 	{
 		if (chunk->allocate(size, alignment, &blk))
+		{
+			if (make_buffer)
+				blk->buf = buffer;
+			else
+				blk->img = image;
 			return blk;
+		}
 	}
 
 	m_size = size > m_size ? nextPowerOfTwo(size) : m_size;
@@ -281,20 +302,22 @@ vk_block* vk_device_allocator::allocate(size_t size, bool make_buffer)
 		throw std::bad_alloc();
 
 	if (make_buffer)
-	{
-		buffer_map[blk] = buffer;
-	}
-
+		blk->buf = buffer;
+	else
+		blk->img = image;
 	return blk;
 }
 
-void vk_device_allocator::deallocate(vk_block* blk)
+void vk_allocator::deallocate(vk_block* blk)
 {
 	for (const auto& chunk : m_chunks)
 	{
 		if (chunk->deallocate(blk))
 		{
-			vkDestroyBuffer(m_device, buffer_map[blk], nullptr);
+			if (blk->buf != VK_NULL_HANDLE)
+				vkDestroyBuffer(m_device, blk->buf, nullptr);
+			else if (blk->img != VK_NULL_HANDLE)
+				vkDestroyImage(m_device, blk->img, nullptr);
 			return;
 		}
 	}
